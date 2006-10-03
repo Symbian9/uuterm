@@ -118,9 +118,8 @@ static int mapkey(unsigned *m, unsigned k, unsigned char *s)
 		if (rel || c > 0x80) return 0;
 		if (*m & 9) c = keymap_sh[k];
 		if (*m & 18) {
-			c &= 0x1f;
-			//if (c >= '@') c &= 0x1f;
-			//else if (keymap_sh[k] >= '@') c = keymap_sh[k] & 0x1f;
+			if (keymap_sh[k] >= '@') c = keymap_sh[k] & 0x1f;
+			else c &= 0x1f;
 		}
 		s[i++] = c;
 		return i;
