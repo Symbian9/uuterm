@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
 	struct uudisp d = { };
 	int tty, max;
 	int i, l;
-	unsigned char b[128];
+	unsigned char b[256];
 	fd_set fds;
 	struct timeval tv;
 	void *buf;
