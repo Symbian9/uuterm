@@ -23,6 +23,31 @@ static void blitline8(unsigned char *dest, unsigned char *src, unsigned long *co
 	}
 }
 
+static void blitline16(unsigned char *dest, unsigned char *src, unsigned long *colors, int w)
+{
+        static const union {
+		unsigned char b[4];
+		uint32_t w;
+	} tab[4] = {
+		{ { 0xff, 0xff, 0xff, 0xff } },
+		{ { 0xff, 0xff, 0x00, 0x00 } },
+		{ { 0x00, 0x00, 0xff, 0xff } },
+		{ { 0x00, 0x00, 0x00, 0x00 } }
+        };
+	uint32_t *dest4 = (uint32_t*)dest;
+	for(; w--; dest4+=4, colors+=2) {
+		int s = *src++;
+		uint32_t t0 = tab[s>>6].w;
+		uint32_t t1 = tab[(s>>4)&3].w;
+		uint32_t t2 = tab[(s>>2)&3].w;
+		uint32_t t3 = tab[s&3].w;
+		dest4[0] = colors[0] ^ (colors[1] & t0);
+		dest4[1] = colors[0] ^ (colors[1] & t1);
+		dest4[2] = colors[0] ^ (colors[1] & t2);
+		dest4[3] = colors[0] ^ (colors[1] & t3);
+	}
+}
+
 static void blit_slice(struct uudisp *d, int idx, int x1, int x2)
 {
 	struct dblbuf *b = (void *)&d->priv;
@@ -38,7 +63,10 @@ static void blit_slice(struct uudisp *d, int idx, int x1, int x2)
 	unsigned long *colors = b->slices[idx].colors + 2*x1;
 
 	for (i=0; i<d->cell_h; i++) {
-		blitline8(dest, src, colors, w);
+		if (b->bytes_per_pixel == 1)
+			blitline8(dest, src, colors, w);
+		else if (b->bytes_per_pixel == 2)
+			blitline16(dest, src, colors, w);
 		dest += b->line_stride;
 		src += s;
 	}
@@ -58,6 +86,26 @@ void clear_cells(struct uudisp *d, int idx, int x1, int x2)
 		memset(dest, 0, cnt);
 }
 
+static unsigned long expand_color(struct uudisp *d, int color)
+{
+	struct dblbuf *b = (void *)&d->priv;
+	if (b->bytes_per_pixel > 1) {
+		int R = color<<1 & 2;
+		int G = color & 2;
+		int B = color>>1 & 2;
+		if (color>>3) {
+			R++; G++; B++;
+		}
+		if (b->bytes_per_pixel == 2)
+			return (R*0xa + (G*0x14<<5) + (B*0xa<<11))
+				* (unsigned long)0x0001000100010001;
+		else if (b->bytes_per_pixel == 4)
+			return (R*0x50 + (G*0x50<<8) + (B*0x50<<16))
+				* (unsigned long)0x0000000100000001;
+	}
+	return color * (unsigned long)0x0101010101010101;
+}
+
 void uudisp_draw_glyph(struct uudisp *d, int idx, int x, const void *glyph, int color)
 {
 	struct dblbuf *b = (void *)&d->priv;
@@ -67,9 +115,8 @@ void uudisp_draw_glyph(struct uudisp *d, int idx, int x, const void *glyph, int 
 	unsigned char *src = (void *)glyph;
 	unsigned char *dest = b->slices[idx].bitmap + cs * x;
 
-	b->slices[idx].colors[2*x] = (color&15)*(unsigned long)0x0101010101010101;
-	b->slices[idx].colors[2*x+1] = b->slices[idx].colors[2*x]
-		^ (color>>4)*(unsigned long)0x0101010101010101;
+	b->slices[idx].colors[2*x] = expand_color(d, color&15);
+	b->slices[idx].colors[2*x+1] = expand_color(d, color>>4) ^ b->slices[idx].colors[2*x];
 	for (i=d->cell_h; i; i--, dest += stride)
 		*dest |= *src++;
 }
@@ -103,10 +150,11 @@ void uudisp_refresh(struct uudisp *d, struct uuterm *t)
 	}
 
 	if (d->blink & 1) {
+		unsigned long rev = expand_color(d, 15);
 		int idx = t->rows[t->y]->idx;
-		b->slices[idx].colors[2*t->x] ^= (unsigned long)0x0f0f0f0f0f0f0f0f;
+		b->slices[idx].colors[2*t->x] ^= rev;
 		blit_slice(d, idx, t->x, t->x);
-		b->slices[idx].colors[2*t->x] ^= (unsigned long)0x0f0f0f0f0f0f0f0f;
+		b->slices[idx].colors[2*t->x] ^= rev;
 	}
 	b->curs_x = t->x;
 	b->curs_y = t->y;
