@@ -37,7 +37,7 @@ void uuterm_refresh_row(struct uudisp *d, struct uurow *row, int x1, int x2)
 		extract_cell(ch[(x+1)&3], &row->cells[x+1]);
 		for (i=0; i<sizeof(ch[0]) && ch[x&3][i]; i++) {
 			const void *glyph = lookup_glyph(ch[x&3], i, ch[(x+3)&3], ch[(x+1)&3]);
-			uudisp_draw_glyph(d, row->idx, x, glyph, row->cells[x].a);
+			uudisp_draw_glyph(d, row->idx, x, glyph, row->cells[x].a & 0xff);
 		}
 	}
 }

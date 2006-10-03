@@ -4,7 +4,7 @@
 struct slice
 {
 	int y;
-	unsigned char *colors;
+	unsigned long *colors;
 	unsigned char *bitmap;
 };
 
@@ -23,7 +23,7 @@ struct dblbuf
 };
 
 #define SLICE_BUF_SIZE(w, h, cs, ch) \
-	( (h)*(sizeof(struct slice) + (w)*(1 + (cs)*(ch))) )
+	( (h)*(sizeof(struct slice) + (w)*(2*sizeof(long) + (cs)*(ch))) )
 
 struct slice *dblbuf_setup_buf(int, int, int, int, unsigned char *);
 
