@@ -106,6 +106,7 @@ static int mapkey(unsigned *m, unsigned k, unsigned char *s)
 	int i = 0;
 
 	k &= 0x7f;
+	if (*m & 4) s[i++] = '\033';
 	if (k < sizeof(keymap)) {
 		c = keymap[k];
 		if (c-0200 < 6) {
@@ -120,9 +121,6 @@ static int mapkey(unsigned *m, unsigned k, unsigned char *s)
 			c &= 0x1f;
 			//if (c >= '@') c &= 0x1f;
 			//else if (keymap_sh[k] >= '@') c = keymap_sh[k] & 0x1f;
-		}
-		if (*m & 4) {
-			s[i++] = '\033';
 		}
 		s[i++] = c;
 		return i;
