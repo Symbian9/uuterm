@@ -187,7 +187,7 @@ int uu_combine_involution(unsigned b, unsigned c)
 	const unsigned short (*r)[2];
 	for (i=0; scripts[i].l; i++)
 		if (b - scripts[i].a <= scripts[i].l)
-			for (r = scripts[i].r; r[0][0]; code += r++[0][1])
+			for (r = scripts[i].r; r[0][0]; code += r++[0][1]+1)
 				if (c - r[0][0] <= r[0][1])
 					return c - r[0][0] + code;
 				else if (c - code <= r[0][1])
