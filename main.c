@@ -1,5 +1,6 @@
 /* uuterm, Copyright (C) 2006 Rich Felker; licensed under GNU GPL v2 only */
 
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
@@ -8,11 +9,16 @@
 #include <sys/time.h> /* for broken systems */
 
 #include "uuterm.h"
+#include "ucf.h"
+
+int ucf_load(struct ucf *, const char *);
+extern const unsigned char vga_ascii_ucf[];
 
 int main(int argc, char *argv[])
 {
 	struct uuterm t = { };
 	struct uudisp d = { };
+	struct ucf f = { };
 	int tty, max;
 	int i, l;
 	unsigned char b[256];
@@ -22,8 +28,13 @@ int main(int argc, char *argv[])
 
 	setlocale(LC_CTYPE, "");
 
+	if (ucf_load(&f, getenv("UUTERM_FONT")) < 0
+	 && ucf_init(&f, vga_ascii_ucf, -1) < 0)
+		return 1;
+
 	d.cell_w = 8;
 	d.cell_h = 16;
+	d.font = &f;
 
 	if (uudisp_open(&d) < 0)
 		return 1;

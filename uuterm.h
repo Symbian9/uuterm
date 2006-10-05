@@ -69,6 +69,7 @@ struct uudisp
 	unsigned char *intext;
 	unsigned char inbuf[16];
 	int blink;
+	void *font;
 	long priv[64];
 };
 
