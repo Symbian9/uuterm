@@ -50,7 +50,11 @@ int uutty_open(char **cmd, int w, int h)
 			if (pts > 2) close(pts);
 			// FIXME............................
 			if (cmd) execvp(cmd[0], cmd);
-			else execl("/bin/sh", "-sh", (char *)0);
+			else {
+				char *s = getenv("SHELL");
+				if (!s) s = "/bin/sh";
+				execl(s, s, (char *)0);
+			}
 			return 1;
 		}
 	
