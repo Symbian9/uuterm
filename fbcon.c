@@ -115,7 +115,19 @@ static int mapkey(unsigned *m, unsigned k, unsigned char *s)
 			else *m |= 1<<c;
 			return 0;
 		}
-		if (rel || c > 0x80) return 0;
+		if (rel) return 0;
+		if (c > 0300) {
+			c -= 0300;
+			s[i++] = '\033';
+			s[i++] = '[';
+			if (c < 6) s[i++] = '[';
+			else if (c < 9) s[i++] = '1';
+			else s[i++] = '2';
+			s[i++] = "ABCDE7890134"[c-1];
+			if (c >= 6) s[i++] = '~';
+			return i;
+		}
+		if (c > 0x80) return 0;
 		if (*m & 9) c = keymap_sh[k];
 		if (*m & 18) {
 			if (keymap_sh[k] >= '@') c = keymap_sh[k] & 0x1f;
