@@ -1,0 +1,68 @@
+
+Quick and dirty uuterm README file:
+
+First and foremost, uuterm is EXPERIMENTAL software. It may crash or
+do bad things. An effort has been made to have it exit gracefully on
+fatal errors; however, in some cases the Linux console may be left in
+a nonresponsive state (hopefully not possible anymore). Having the
+"magic sysrq key" or "SAK" configured in your kernel will be a great
+help if this happens! I also recommend running "screen" inside uuterm
+so that, if it does crash, you don't lose your work.
+
+Second, at this time uuterm only supports Linux fbcon as its display
+target. Porting to other framebuffer devices should be easy.
+
+With that said, building is just a matter of running "make". If you
+need special CFLAGS options or a nondefault compiler (CC), put them in
+a file named config.mak and they will automatically be used. Should be
+self-explanatory.
+
+To run uuterm, set the environment variable UUTERM_FONT to point to a
+UCF font file and run "uuterm". A sample UCF font file is available at
+http://brightrain.aerifal.cx/~dalias/sample.ucf.gz and has support for
+ASCII, Thai, Tibetan, and Japanese text. Tools to make UCF fonts from
+other source formats will be available soon.
+
+By default uuterm runs the default SHELL when started. If you want it
+to directly run another program, simply put the name of the program on
+the command line, followed by any arguments.
+
+
+
+
+The idea of uuterm:
+
+Use of any/all of the world's scripts and languages on *nix should not
+be limited to fancy gui applications. Proper rendering of text is
+needed all the way down to the console level, and it should not depend
+on huge library frameworks or outline fonts.
+
+In this light, uuterm is an experiment to demonstrate that supporting
+"complex" scripts need not be complex; all that's needed is some
+natural, logical extensions to ancient bitmap font technology to
+account for the fact that glyphs and characters are not the same
+thing.
+
+While display in uuterm is already very "advanced" by terminal
+emulator standards, keyboard support is very poor. US keyboard layout
+is presently hardcoded in fbcon.c. Eventually I will migrate this to a
+more flexible framework.
+
+
+
+
+Script support:
+
+- Indic scripts are _almost_ supported by the UCF font system alone,
+  but need some minor additional support for reordering. This will be
+  implemented in the near future, if all goes well.
+
+- RTL/bidi scripts will not render properly. I personally don't believe
+  there is any sane way to render them properly at the terminal level,
+  but I will eventually implement algorithms that might work
+  reasonably for some users.
+
+- All other (LTR) scripts should be fully supported using the
+  "advanced" combining and contextual glyph-selection abilities of the
+  UCF font format (details to come later, along with tools).
+
