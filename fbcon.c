@@ -61,6 +61,15 @@ static int get_fb_size(struct uudisp *d)
 	return 0;
 }
 
+static struct uudisp *display;
+
+static void fatalsignal(int sig)
+{
+	uudisp_close(display);
+	signal(sig, SIG_DFL);
+	raise(sig);
+}
+
 static void dummy(int x)
 {
 }
@@ -184,6 +193,14 @@ int uudisp_open(struct uudisp *d)
 	signal(SIGTSTP, SIG_IGN);
 	signal(SIGTTIN, SIG_IGN);
 	signal(SIGTTOU, SIG_IGN);
+
+	display = d;
+	signal(SIGINT, fatalsignal);
+	signal(SIGTERM, fatalsignal);
+	signal(SIGSEGV, fatalsignal);
+	signal(SIGBUS, fatalsignal);
+	signal(SIGABRT, fatalsignal);
+	signal(SIGFPE, fatalsignal);
 
 	return 0;
 error:
