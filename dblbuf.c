@@ -125,16 +125,17 @@ void uudisp_refresh(struct uudisp *d, struct uuterm *t)
 {
 	struct dblbuf *b = (void *)&d->priv;
 	int h = t->h < d->h ? t->h : d->h;
-	int y;
+	int x1, x2, idx, y;
 
 	/* Clean up cursor first.. */
-	blit_slice(d, t->rows[b->curs_y]->idx, b->curs_x, b->curs_x);
-	//printf("--- %d\r\n", b->slices[t->rows[b->curs_y]->idx].y);
+	idx = t->rows[b->curs_y]->idx;
+	if ((unsigned)b->slices[idx].y < d->h)
+		blit_slice(d, idx, b->curs_x, b->curs_x);
 
 	for (y=0; y<h; y++) {
-		int idx = t->rows[y]->idx;
-		int x1 = t->rows[y]->x1;
-		int x2 = t->rows[y]->x2;
+		x1 = t->rows[y]->x1;
+		x2 = t->rows[y]->x2;
+		idx = t->rows[y]->idx;
 		if (x2 >= x1) {
 			clear_cells(d, idx, x1, x2);
 			uuterm_refresh_row(d, t->rows[y], x1, x2);
@@ -158,7 +159,6 @@ void uudisp_refresh(struct uudisp *d, struct uuterm *t)
 	}
 	b->curs_x = t->x;
 	b->curs_y = t->y;
-	//printf("+++ %d\r\n", b->slices[t->rows[b->curs_y]->idx].y);
 }
 
 struct slice *dblbuf_setup_buf(int w, int h, int cs, int ch, unsigned char *mem)
