@@ -1,5 +1,7 @@
 /* uuterm, Copyright (C) 2006 Rich Felker; licensed under GNU GPL v2 only */
 
+#define _XOPEN_SOURCE 500
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
