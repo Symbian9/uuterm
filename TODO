@@ -1,0 +1,28 @@
+
+TODO list for uuterm...
+
+
+Critical usability issues:
+
+- Indic character reordering
+- Porting to X
+- Mouse support/selection
+- Configurable keyboard mappings
+- Support for input methods
+
+
+Convenience/eyecandy/etc.:
+
+- 88- or 256-color mode
+- Support for 32bpp framebuffer device
+- Fontsets instead of monolithic font 
+- UCF compiler
+- Terminal escapes for input method interaction
+
+
+Long term goals:
+
+- Port to 8086/BIOS/EGA (not even DOS needed)
+- Bidirectional text layout
+
+
