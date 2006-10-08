@@ -8,6 +8,7 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
+#include <sys/vt.h>
 #include <sys/kd.h>
 #include <linux/fb.h>
 
@@ -23,8 +24,6 @@ struct priv
 	int kb;
 	int ms;
 	struct termios tio;
-	int kbmode;
-	int mod;
 	int xres, yres;
 	void *buf_mem;
 };
@@ -56,6 +55,8 @@ static int get_fb_size(struct uudisp *d)
 		p->yres = var.yres;
 		d->w = w;
 		d->h = h;
+		p->b.repaint = 1;
+		p->b.curs_x = p->b.curs_y = 0;
 	}
 
 	return 0;
@@ -74,87 +75,12 @@ static void dummy(int x)
 {
 }
 
-static int mapkey(unsigned *m, unsigned k, unsigned char *s)
+static void vtswitch(int sig)
 {
-#define LSHIFT "\200"
-#define LCTRL  "\201"
-#define LALT   "\202"
-#define RSHIFT "\203"
-#define RCTRL  "\204"
-#define RALT   "\205"
-#define CAPSLK "\206"
-#define NUMLK  "\207"
-#define SCRLK  "\210"
-#define WTF    "\377"
-	static const unsigned char keymap[] =
-		"\0\033" "1234567890-=\177"
-		"\t"   "qwertyuiop[]\r"
-		LCTRL  "asdfghjkl;'`"
-		LSHIFT "\\zxcvbnm,./" RSHIFT "*"
-		LALT   " " CAPSLK
-		"\301\302\303\304\305\306\307\310\311\312"
-		NUMLK SCRLK;
-	static const unsigned char keymap_sh[] =
-		"\0\033" "!@#$%^&*()_+\177"
-		"\t"   "QWERTYUIOP{}\r"
-		LCTRL  "ASDFGHJKL:\"~"
-		LSHIFT "|ZXCVBNM<>?" RSHIFT "*"
-		LALT   " " CAPSLK
-		"\301\302\303\304\305\306\307\310\311\312"
-		NUMLK SCRLK;
-	//71...
-	static const unsigned char keypad[] = "789-456+1230.";
-	//64..95 useless
-	//96...
-	static const unsigned char keypad2[] = "\r" RCTRL WTF "/" RALT WTF;
-	//102...
-	static const unsigned char cursblk[] = "1A5DC4B623";
-
-	unsigned c;
-	unsigned rel = k & 0x80;
-	int i = 0;
-
-	k &= 0x7f;
-	if (*m & 4) s[i++] = '\033';
-	if (k < sizeof(keymap)) {
-		c = keymap[k];
-		if (c-0200 < 6) {
-			c &= 15;
-			if (rel) *m &= ~(1<<c);
-			else *m |= 1<<c;
-			return 0;
-		}
-		if (rel) return 0;
-		if (c > 0300) {
-			c -= 0300;
-			s[i++] = '\033';
-			s[i++] = '[';
-			if (c < 6) s[i++] = '[';
-			else if (c < 9) s[i++] = '1';
-			else s[i++] = '2';
-			s[i++] = "ABCDE7890134"[c-1];
-			if (c >= 6) s[i++] = '~';
-			return i;
-		}
-		if (c > 0x80) return 0;
-		if (*m & 9) c = keymap_sh[k];
-		if (*m & 18) {
-			if (keymap_sh[k] >= '@') c = keymap_sh[k] & 0x1f;
-			else c &= 0x1f;
-		}
-		s[i++] = c;
-		return i;
-	}
-	if (k-102 < sizeof(cursblk)) {
-		if (rel) return 0;
-		s[i++] = '\033';
-		s[i++] = '[';
-		c = cursblk[k-102];
-		s[i++] = c;
-		if (c < 'A') s[i++] = '~';
-		return i;
-	}
-	return 0;
+	struct priv *p = (void *)&display->priv;
+	p->b.repaint = p->b.active = sig == SIGUSR2;
+	ioctl(p->kb, VT_RELDISP, VT_ACKACQ);
+	signal(sig, vtswitch);
 }
 
 int uudisp_open(struct uudisp *d)
@@ -162,6 +88,7 @@ int uudisp_open(struct uudisp *d)
 	struct priv *p = (void *)&d->priv;
 	struct fb_fix_screeninfo fix;
 	struct termios tio;
+	struct vt_mode vtm;
 
 	p->fb = p->kb = p->ms = -1;
 	p->b.vidmem = MAP_FAILED;
@@ -174,13 +101,23 @@ int uudisp_open(struct uudisp *d)
 	if (p->b.vidmem == MAP_FAILED)
 		goto error;
 
+	display = d;
+
+	signal(SIGINT, fatalsignal);
+	signal(SIGTERM, fatalsignal);
+	signal(SIGSEGV, fatalsignal);
+	signal(SIGBUS, fatalsignal);
+	signal(SIGABRT, fatalsignal);
+	signal(SIGFPE, fatalsignal);
+
+	signal(SIGUSR1, vtswitch);
+	signal(SIGUSR2, vtswitch);
+
 	if ((p->kb = open("/dev/tty", O_RDONLY)) < 0
-	 || ioctl(p->kb, KDGKBMODE, &p->kbmode) < 0
-	 || ioctl(p->kb, KDSKBMODE, K_MEDIUMRAW) < 0)
+	 || ioctl(p->kb, KDSETMODE, KD_GRAPHICS) < 0)
 		goto error;
 
 	/* If the above succeeds, the below cannot fail */
-	ioctl(p->kb, KDSETMODE, KD_GRAPHICS);
 	tcgetattr(p->kb, &p->tio);
 	tio = p->tio;
 	tio.c_cflag = B38400 | CS8 | CLOCAL | CREAD;
@@ -189,18 +126,20 @@ int uudisp_open(struct uudisp *d)
 	tio.c_lflag = 0;
 	tcsetattr(p->kb, TCSANOW, &tio);
 
+	vtm.mode = VT_PROCESS;
+	vtm.waitv = 0;
+	vtm.relsig = SIGUSR1;
+	vtm.acqsig = SIGUSR2;
+	vtm.frsig = 0;
+	ioctl(p->kb, VT_SETMODE, &vtm);
+
 	signal(SIGWINCH, dummy); /* just to interrupt select! */
 	signal(SIGTSTP, SIG_IGN);
 	signal(SIGTTIN, SIG_IGN);
 	signal(SIGTTOU, SIG_IGN);
 
-	display = d;
-	signal(SIGINT, fatalsignal);
-	signal(SIGTERM, fatalsignal);
-	signal(SIGSEGV, fatalsignal);
-	signal(SIGBUS, fatalsignal);
-	signal(SIGABRT, fatalsignal);
-	signal(SIGFPE, fatalsignal);
+	/* FIXME: need to actually detect if the VC is active */
+	p->b.active = 1;
 
 	return 0;
 error:
@@ -229,16 +168,21 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 	d->inlen = 0;
 	d->intext = d->inbuf;
 
-	if (FD_ISSET(p->kb, (fd_set *)fds) && read(p->kb, &b, 1) == 1)
-		d->inlen = mapkey(&p->mod, b, d->intext);
+	if (FD_ISSET(p->kb, (fd_set *)fds)) {
+		d->inlen = read(p->kb, d->inbuf, sizeof d->inbuf);
+		if (d->inlen < 0) d->inlen = 0;
+	}
 }
 
 void uudisp_close(struct uudisp *d)
 {
 	struct priv *p = (struct priv *)&d->priv;
+	struct vt_mode vtm;
 	tcsetattr(p->kb, TCSANOW, &p->tio);
-	ioctl(p->kb, KDSKBMODE, p->kbmode);
 	ioctl(p->kb, KDSETMODE, KD_TEXT);
+	vtm.mode = VT_AUTO;
+	vtm.waitv = 0;
+	ioctl(p->kb, VT_SETMODE, &vtm);
 	close(p->fb);
 	close(p->kb);
 	close(p->ms);

@@ -7,7 +7,6 @@ Critical usability issues:
 - Indic character reordering
 - Porting to X
 - Mouse support/selection
-- Configurable keyboard mappings
 - Support for input methods
 
 
@@ -18,7 +17,6 @@ Convenience/eyecandy/etc.:
 - Fontsets instead of monolithic font 
 - UCF compiler
 - Terminal escapes for input method interaction
-- Allow VC switching
 
 
 Long term goals:

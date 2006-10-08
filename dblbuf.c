@@ -127,6 +127,9 @@ void uudisp_refresh(struct uudisp *d, struct uuterm *t)
 	int h = t->h < d->h ? t->h : d->h;
 	int x1, x2, idx, y;
 
+	if (!b->active) return;
+	if (b->repaint) for (idx=0; idx<h; idx++) b->slices[idx].y = -1;
+
 	/* Clean up cursor first.. */
 	idx = t->rows[b->curs_y]->idx;
 	if ((unsigned)b->slices[idx].y < d->h)

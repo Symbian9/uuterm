@@ -486,6 +486,8 @@ void uuterm_replace_buffer(struct uuterm *t, int w, int h, void *buf)
 		rows[i]->x2 = w-1;
 	}
 
+	if (t->sr_y2 == t->h-1) t->sr_y2 = h-1;
+
 	t->w = w;
 	t->h = h;
 	t->rows = rows;

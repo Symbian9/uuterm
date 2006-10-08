@@ -13,6 +13,7 @@ struct dblbuf
 	struct slice *slices;
 	unsigned cs, ch;
 
+	int active, repaint;
 	unsigned curs_x;
 	unsigned curs_y;
 

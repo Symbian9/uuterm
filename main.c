@@ -62,8 +62,10 @@ int main(int argc, char *argv[])
 		max = uudisp_fd_set(&d, tty, &fds);
 		tv.tv_sec = 0;
 		tv.tv_usec = 250000;
-		if (select(max, &fds, NULL, NULL, &tv) == 0)
+		if (select(max, &fds, NULL, NULL, &tv) <= 0) {
 			d.blink++;
+			FD_ZERO(&fds);
+		}
 
 		/* Process input from the tty, up to buffer size */
 		if (FD_ISSET(tty, &fds)) {
