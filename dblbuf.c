@@ -128,7 +128,10 @@ void uudisp_refresh(struct uudisp *d, struct uuterm *t)
 	int x1, x2, idx, y;
 
 	if (!b->active) return;
-	if (b->repaint) for (idx=0; idx<h; idx++) b->slices[idx].y = -1;
+	if (b->repaint) {
+		for (idx=0; idx<h; idx++) b->slices[idx].y = -1;
+		b->repaint = 0;
+	}
 
 	/* Clean up cursor first.. */
 	idx = t->rows[b->curs_y]->idx;
