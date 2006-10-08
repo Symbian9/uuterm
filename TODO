@@ -18,6 +18,7 @@ Convenience/eyecandy/etc.:
 - Fontsets instead of monolithic font 
 - UCF compiler
 - Terminal escapes for input method interaction
+- Allow VC switching
 
 
 Long term goals:
