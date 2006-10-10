@@ -85,6 +85,7 @@ void uuterm_stuff_byte(struct uuterm *, unsigned char);
 void uuterm_refresh_row(struct uudisp *, struct uurow *, int, int);
 
 int uu_combine_involution(unsigned, unsigned);
+int uu_decompose_char(unsigned, unsigned *, unsigned);
 
 int uudisp_open(struct uudisp *);
 int uudisp_fd_set(struct uudisp *, int, void *);
