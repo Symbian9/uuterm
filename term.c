@@ -377,7 +377,9 @@ static void process_char(struct uuterm *t, unsigned c)
 		escape(t, c);
 		return;
 	}
-	switch(w=wcwidth(c)) {
+	if (iswcntrl(c)) w = -1;
+	else if ((w = wcwidth(c)) < 0) w = 1;
+	switch(w) {
 	case -1:
 		switch (c) {
 		case 033:
