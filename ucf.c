@@ -90,9 +90,11 @@ int ucf_lookup(struct ucf *f, int idx, const unsigned *cc,
 		} else l = 1;
 		switch (x) {
 		case RULE_ATTACHED_TO:
+			if (i > idx) i = idx;
 			if (i && c[--i]-a < l) continue;
 			break;
 		case RULE_WITH_ATTACHED:
+			if (i < idx) i = idx;
 			if (c[++i]-a < l) continue;
 			break;
 		case RULE_FOLLOWS:
