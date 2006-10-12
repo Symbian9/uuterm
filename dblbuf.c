@@ -1,6 +1,7 @@
 /* uuterm, Copyright (C) 2006 Rich Felker; licensed under GNU GPL v2 only */
 
 #include <inttypes.h>
+#include <string.h>
 
 #include "uuterm.h"
 #include "dblbuf.h"
