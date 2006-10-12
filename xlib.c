@@ -147,8 +147,8 @@ int uudisp_open(struct uudisp *d)
 		XMatchVisualInfo(p->display, p->screen, 1, StaticGray, &vi);
 
 		image = XCreateImage(p->display,
-			vi.visual, 1, XYBitmap, (-d->cell_w)&7, g,
-			d->cell_w, d->cell_h * 1024, 8, 0);
+			vi.visual, 1, XYBitmap, (-d->cell_w)&7, g, d->cell_w,
+			d->cell_h*(i+1<npages ? 1024 : (nglyphs&1023)), 8, 0);
 		XPutImage(p->display, p->glyph_cache[i], gc, image,
 			0, 0, 0, 0, d->cell_w, d->cell_h * 1024);
 
