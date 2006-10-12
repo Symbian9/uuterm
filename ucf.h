@@ -6,7 +6,7 @@ struct ucf
 {
 	int w, h, s, S;
 	const unsigned char *ranges, *ctab, *gmap, *glyphs;
-	unsigned nranges;
+	unsigned nranges, nglyphs;
 };
 
 int ucf_init(struct ucf *, const unsigned char *, size_t);

@@ -29,6 +29,7 @@ int ucf_init(struct ucf *f, const unsigned char *map, size_t len)
 	f->ranges = map + U32(map+20) + 4;
 	f->gmap = map + U32(map+24);
 	f->glyphs = map + U32(map+28);
+	f->nglyphs = (len - (f->glyphs - map)) / f->S;
 	f->ctab = f->ranges + 8*(f->nranges = U32(f->ranges - 4));
 	return 0;
 }
