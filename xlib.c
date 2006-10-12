@@ -190,6 +190,7 @@ struct
 	KeySym ks;
 	char s[7], l;
 } keys[] = {
+	{ XK_BackSpace, "\177",1 },
 	{ XK_Home,      "\033[1~",4 },
 	{ XK_Insert,    "\033[2~",4 },
 	{ XK_Delete,    "\033[3~",4 },
