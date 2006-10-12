@@ -92,7 +92,8 @@ int uudisp_fd_set(struct uudisp *, int, void *);
 void uudisp_next_event(struct uudisp *, void *);
 void uudisp_close(struct uudisp *);
 void uudisp_refresh(struct uudisp *, struct uuterm *);
-void uudisp_draw_glyph(struct uudisp *, int, int, const void *, int);
+void uudisp_predraw_cell(struct uudisp *, int, int, int);
+void uudisp_draw_glyph(struct uudisp *, int, int, const void *);
 
 void *uuterm_alloc(size_t);
 void uuterm_free(void *);

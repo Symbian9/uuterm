@@ -106,7 +106,15 @@ static unsigned long expand_color(struct uudisp *d, int color)
 	return color * (unsigned long)0x0101010101010101;
 }
 
-void uudisp_draw_glyph(struct uudisp *d, int idx, int x, const void *glyph, int color)
+void uudisp_predraw_cell(struct uudisp *d, int idx, int x, int color)
+{
+	struct dblbuf *b = (void *)&d->priv;
+
+	b->slices[idx].colors[2*x] = expand_color(d, color&15);
+	b->slices[idx].colors[2*x+1] = expand_color(d, color>>4) ^ b->slices[idx].colors[2*x];
+}
+
+void uudisp_draw_glyph(struct uudisp *d, int idx, int x, const void *glyph)
 {
 	struct dblbuf *b = (void *)&d->priv;
 	int i;
@@ -115,8 +123,6 @@ void uudisp_draw_glyph(struct uudisp *d, int idx, int x, const void *glyph, int 
 	unsigned char *src = (void *)glyph;
 	unsigned char *dest = b->slices[idx].bitmap + cs * x;
 
-	b->slices[idx].colors[2*x] = expand_color(d, color&15);
-	b->slices[idx].colors[2*x+1] = expand_color(d, color>>4) ^ b->slices[idx].colors[2*x];
 	for (i=d->cell_h; i; i--, dest += stride)
 		*dest |= *src++;
 }

@@ -52,9 +52,10 @@ void uuterm_refresh_row(struct uudisp *d, struct uurow *row, int x1, int x2)
 		} else {
 			width = 1; part = 0; chp = ch[x&3];
 		}
+		uudisp_predraw_cell(d, row->idx, x, row->cells[x].a & 0xff);
 		for (i=0; i<sizeof(ch[0]) && chp[i]; i++) {
 			const void *glyph = lookup_glyph(d->font, i, chp, ch[(x+3)&3], ch[(x+1)&3], width, part);
-			if (glyph) uudisp_draw_glyph(d, row->idx, x, glyph, row->cells[x].a & 0xff);
+			if (glyph) uudisp_draw_glyph(d, row->idx, x, glyph);
 		}
 	}
 }
