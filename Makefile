@@ -20,7 +20,7 @@ all: $(ALL)
 
 $(OBJS) $(OBJS_FB) $(OBJS_X11): uuterm.h
 
-uuterm-fb: $(OBJS) $(OBJS_X11)
+uuterm-fb: $(OBJS) $(OBJS_FB)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(OBJS_FB)
 
 uuterm-x11: $(OBJS) $(OBJS_X11)
