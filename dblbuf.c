@@ -89,6 +89,7 @@ void clear_cells(struct uudisp *d, int idx, int x1, int x2)
 static unsigned long expand_color(struct uudisp *d, int color)
 {
 	struct dblbuf *b = (void *)&d->priv;
+	static const unsigned char cmap[8] = {0,4,2,6,1,5,3,7};
 	if (b->bytes_per_pixel > 1) {
 		int R = color<<1 & 2;
 		int G = color & 2;
@@ -97,12 +98,13 @@ static unsigned long expand_color(struct uudisp *d, int color)
 			R++; G++; B++;
 		}
 		if (b->bytes_per_pixel == 2)
-			return (R*0xa + (G*0x14<<5) + (B*0xa<<11))
+			return (B*0xa + (G*0x14<<5) + (R*0xa<<11))
 				* (unsigned long)0x0001000100010001;
 		else if (b->bytes_per_pixel == 4)
-			return (R*0x50 + (G*0x50<<8) + (B*0x50<<16))
+			return (B*0x50 + (G*0x50<<8) + (R*0x50<<16))
 				* (unsigned long)0x0000000100000001;
 	}
+	color = (color&8) | cmap[color&7];
 	return color * (unsigned long)0x0101010101010101;
 }
 

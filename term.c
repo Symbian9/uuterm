@@ -190,9 +190,6 @@ static void csi(struct uuterm *t, unsigned c)
 		break;
 	case 'm':
 		for (i=0; i<t->nparam; i++) {
-			static const unsigned char cmap[] = {
-				0, 4, 2, 6, 1, 5, 3, 7
-			};
 			static const unsigned short attr[] = {
 				UU_ATTR_BOLD, UU_ATTR_DIM, 0,
 				UU_ATTR_UL, UU_ATTR_BLINK, 0,
@@ -208,10 +205,10 @@ static void csi(struct uuterm *t, unsigned c)
 				t->attr &= ~attr[t->param[i]-21];
 			} else if (t->param[i]-30 < 8) {
 				t->attr &= ~UU_ATTR_FG;
-				t->attr |= cmap[(t->param[i] - 30)];
+				t->attr |= t->param[i] - 30;
 			} else if (t->param[i]-40 < 8) {
 				t->attr &= ~UU_ATTR_BG;
-				t->attr |= cmap[(t->param[i] - 40)] << 4;
+				t->attr |= t->param[i] - 40 << 4;
 			}
 		}
 		break;
