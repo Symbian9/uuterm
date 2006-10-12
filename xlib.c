@@ -71,8 +71,7 @@ int uudisp_open(struct uudisp *d)
 	XGCValues values;
 	XVisualInfo vi;
 	char *s;
-	int px_w = 80*d->cell_w;
-	int px_h = 24*d->cell_h;
+	int px_w, px_h;
 	struct ucf *f = d->font;
 	const unsigned char *glyphs, *end;
 	int nglyphs = f->nglyphs;
@@ -84,6 +83,12 @@ int uudisp_open(struct uudisp *d)
 	if (!(p->display = XOpenDisplay(NULL)))
 		return -1;
 
+	d->w = 80;
+	d->h = 24;
+	p->slices_y = uuterm_alloc(d->h*sizeof(int));
+	px_w = d->w*d->cell_w;
+	px_h = d->h*d->cell_h;
+
 	p->fd = ConnectionNumber(p->display);
 	p->screen = DefaultScreen(p->display);
 	p->window = XCreateSimpleWindow(p->display,
@@ -93,10 +98,6 @@ int uudisp_open(struct uudisp *d)
 		BlackPixel(p->display, p->screen));
 	XSelectInput(p->display, p->window, KeyPressMask|ExposureMask);
 	XMapWindow(p->display, p->window);
-
-	d->w = 80;
-	d->h = 24;
-	p->slices_y = uuterm_alloc(240*sizeof(int));
 
 	//XSetLocaleModifiers("@im=none");
 	//p->im = XOpenIM(p->display, 0, 0, 0);
