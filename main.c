@@ -13,6 +13,7 @@
 
 int ucf_load(struct ucf *, const char *);
 extern const unsigned char vga_ascii_ucf[];
+extern const size_t vga_ascii_ucf_size;
 
 int main(int argc, char *argv[])
 {
@@ -29,7 +30,7 @@ int main(int argc, char *argv[])
 	setlocale(LC_CTYPE, "");
 
 	if (ucf_load(&f, getenv("UUTERM_FONT")) < 0
-	 && ucf_init(&f, vga_ascii_ucf, -1) < 0)
+	 && ucf_init(&f, vga_ascii_ucf, vga_ascii_ucf_size) < 0)
 		return 1;
 
 	d.cell_w = 8;
