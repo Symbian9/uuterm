@@ -27,5 +27,5 @@ uuterm-x11: $(OBJS) $(OBJS_X11)
 	$(CC) $(LDFLAGS) $(LDFLAGS_X11) -o $@ $(OBJS) $(OBJS_X11) -lX11
 
 clean:
-	rm -f $(OBJS) uuterm-fb uuterm-x11
+	rm -f $(OBJS) $(OBJS_FB) $(OBJS_X11) uuterm-fb uuterm-x11
 
