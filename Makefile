@@ -8,7 +8,7 @@ OBJS_FB = fbcon.o dblbuf.o
 OBJS_X11 = xlib.o
 LDFLAGS_X11 = -L/usr/X11R6/lib
 
-ALL = uuterm-fb uuterm-x11
+ALL = uuterm-x11 uuterm-fb
 
 CFLAGS = -O2 -s #-g
 LDFLAGS = -s
