@@ -79,11 +79,10 @@ int uudisp_open(struct uudisp *d)
 	char *s;
 	int px_w, px_h;
 	struct ucf *f = d->font;
-	const unsigned char *glyphs, *end;
 	int nglyphs = f->nglyphs;
 	GC gc;
 	int npages;
-	XImage *image;
+	XImage image;
 	int i, j, k;
 	int margin = 2;
 
@@ -137,19 +136,7 @@ int uudisp_open(struct uudisp *d)
 	npages = (nglyphs+1023) / 1024; // allows up to 64 pixel cell height..
 	p->glyph_cache = calloc(sizeof(p->glyph_cache[0]), npages);
 
-	glyphs = f->glyphs;
-	end = glyphs + nglyphs*f->S;
-
 	for (i=0; i<npages; i++) {
-		unsigned char data[1024*f->S], *g = data;
-
-		if (BitmapBitOrder(p->display) == LSBFirst) {
-			memset(data, 0, sizeof data);
-			for (k=0; k<sizeof data && glyphs < end; k++, glyphs++)
-				for (j=0; j<8; j++)
-					data[k] |= ((*glyphs>>(7-j))&1)<<j;
-		} else g = (void *)f->glyphs;
-
 		p->glyph_cache[i] = XCreatePixmap(p->display,
 			DefaultRootWindow(p->display),
 			d->cell_w, d->cell_h * 1024, 1);
@@ -157,15 +144,23 @@ int uudisp_open(struct uudisp *d)
 		gc = XCreateGC(p->display, p->glyph_cache[i], 0, &values);
 		XSetForeground(p->display, gc, WhitePixel(p->display, p->screen));
 		XSetBackground(p->display, gc, BlackPixel(p->display, p->screen));
-		XMatchVisualInfo(p->display, p->screen, 1, StaticGray, &vi);
 
-		image = XCreateImage(p->display,
-			vi.visual, 1, XYBitmap, (-d->cell_w)&7, g, d->cell_w,
-			d->cell_h*(i+1<npages ? 1024 : (nglyphs&1023)), 8, 0);
-		XPutImage(p->display, p->glyph_cache[i], gc, image,
-			0, 0, 0, 0, d->cell_w, d->cell_h * 1024);
+		memset(&image, 0, sizeof image);
+		image.width = d->cell_w;
+		image.height = d->cell_h * 1024;
+		image.xoffset = (-d->cell_w)&7;
+		image.format = XYBitmap;
+		image.data = (void *)(f->glyphs + i*1024*f->S);
+		image.byte_order = ImageByteOrder(p->display);
+		image.bitmap_bit_order = MSBFirst;
+		image.bitmap_pad = 8;
+		image.depth = 1;
+		image.bytes_per_line = (d->cell_w+7)>>3;
+		XInitImage(&image);
+		XPutImage(p->display, p->glyph_cache[i], gc, &image,
+			0, 0, 0, 0, d->cell_w,
+			d->cell_h*(i+1<npages ? 1024 : (nglyphs&1023)));
 
-		//XDestroyImage(image);
 		XFreeGC(p->display, gc);
 	}
 
