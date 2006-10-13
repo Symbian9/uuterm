@@ -1,27 +1,35 @@
 
 Quick and dirty uuterm README file:
 
-First and foremost, uuterm is EXPERIMENTAL software. It may crash or
-do bad things. An effort has been made to have it exit gracefully on
-fatal errors; however, in some cases the Linux console may be left in
-a nonresponsive state (hopefully not possible anymore). Having the
-"magic sysrq key" or "SAK" configured in your kernel will be a great
-help if this happens! I also recommend running "screen" inside uuterm
-so that, if it does crash, you don't lose your work.
+First and foremost, uuterm is EXPERIMENTAL software. It lacks many
+features expected of a terminal emulator, and may even crash or do bad
+things, though it seems to be behaving pretty well these days.
 
-Second, at this time uuterm only supports Linux fbcon as its display
-target. Porting to other framebuffer devices should be easy.
+Both Linux-fbcon and X11 versions of uuterm are available, each
+optimized for the nature of the environment it runs in. Porting the
+fbcon version to other framebuffer devices (wscons, PC hardware, SDL,
+...) is left as an easy exercise for the reader.
 
 With that said, building is just a matter of running "make". If you
 need special CFLAGS options or a nondefault compiler (CC), put them in
 a file named config.mak and they will automatically be used. Should be
-self-explanatory.
+self-explanatory. You can also disable uuterm-fb here if you're not
+using Linux.
 
-To run uuterm, set the environment variable UUTERM_FONT to point to a
-UCF font file and run "uuterm". A sample UCF font file is available at
-http://brightrain.aerifal.cx/~dalias/sample.ucf.gz and has support for
-ASCII, Thai, Tibetan, and Japanese text. Tools to make UCF fonts from
-other source formats will be available soon.
+To start using uuterm, simply run "uuterm-fb" or "uuterm-x11" with the
+TERM environment variable set to "linux", or "uuterm" if you install
+the provided uuterm.ti terminfo file.
+
+A simple 'VGA' fallback font with ASCII and linedrawing characters is
+built into uuterm, but in order to appreciate uuterm you need a real
+font. uuterm uses 'UCF' (U**code/Ucs/Universal/... Charcell Font) font
+files. The code to generate UCF fonts is not yet mature, but some
+samples (and the extremely ugly compiler) may be found at:
+
+    http://brightrain.aerifal.cx/~dalias/ucf/fonts/
+
+See the README file there for information on available fonts and how
+to make new fonts.
 
 By default uuterm runs the default SHELL when started. If you want it
 to directly run another program, simply put the name of the program on
@@ -44,9 +52,10 @@ account for the fact that glyphs and characters are not the same
 thing.
 
 While display in uuterm is already very "advanced" by terminal
-emulator standards, keyboard support is very poor. US keyboard layout
-is presently hardcoded in fbcon.c. Eventually I will migrate this to a
-more flexible framework.
+emulator standards, keyboard support is moderately poor. The X11
+version of uuterm does not yet have integration with input methods and
+the Linux-fbcon version relies on the console keymap to convert
+keycodes to characters.
 
 
 
