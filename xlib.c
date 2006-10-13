@@ -112,9 +112,9 @@ int uudisp_open(struct uudisp *d)
 
 	XMapWindow(p->display, p->window);
 
-	//XSetLocaleModifiers("@im=none");
-	//p->im = XOpenIM(p->display, 0, 0, 0);
-	//p->ic = XCreateIC(p->im, XNInputStyle, XIMPreeditNothing|XIMStatusNothing);
+	XSetLocaleModifiers("@im=none");
+	p->im = XOpenIM(p->display, 0, 0, 0);
+	if (p->im) p->ic = XCreateIC(p->im, XNInputStyle, XIMPreeditNothing|XIMStatusNothing);
 
 	resize_window(d, px_w, px_h);
 
@@ -233,6 +233,7 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 	unsigned char *s = d->inbuf;
 	char tmp[32], mbtmp[sizeof(tmp)*MB_LEN_MAX];
 	wchar_t wtmp[sizeof(tmp)];
+	int status;
 	int i, n;
 	int y1, y2;
 
@@ -255,15 +256,20 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 			resize_window(d, ev.xconfigure.width, ev.xconfigure.height);
 			break;
 		case KeyPress:
-#if 0
-			// r = XmbLookupString(p->ic, (void *)&ev, s, l, &ks, &status);
-			switch(status) {
-			case XLookupChars:
-			case XLookupBoth:
-				//
-			}
-#endif
-			r = XLookupString((void *)&ev, tmp, sizeof(tmp), &ks, 0);
+			if (p->ic) {
+				r = XmbLookupString(p->ic, (void *)&ev, tmp, sizeof(tmp), &ks, &status);
+				switch(status) {
+				case XLookupKeySym:
+					r = 0;
+					break;
+				case XLookupChars:
+					ks = 0;
+				case XLookupBoth:
+					break;
+				default:
+					continue;
+				}
+			} else r = XLookupString((void *)&ev, tmp, sizeof(tmp), &ks, 0);
 			if (r>=sizeof(tmp)) continue;
 			if ((ev.xkey.state & Mod1Mask) && l) {
 				*s++ = '\033';
@@ -288,6 +294,14 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 				continue;
 			}
 			if (!r) continue;
+
+			if (p->ic) {
+				if (r > l) continue;
+				memcpy(s, tmp, r);
+				s += r;
+				l -= r;
+				continue;
+			}
 
 			/* Deal with Latin-1 crap.. */
 			for (i=0; i<=r; i++) wtmp[i] = tmp[i];
