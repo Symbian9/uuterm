@@ -32,45 +32,50 @@ struct priv
 	unsigned long colors[16];
 };
 
-#if 0
-static int get_fb_size(struct uudisp *d)
+static int resize_window(struct uudisp *d, int w, int h)
 {
-	struct priv *p = (struct priv *)&d->priv;
+	struct priv *p = (void *)&d->priv;
+	Pixmap pixmap;
+	void *slice_buf;
+	int i;
 
-	if (ioctl(p->fb, FBIOGET_FSCREENINFO, &fix) < 0
-	 || ioctl(p->fb, FBIOGET_VSCREENINFO, &var) < 0
-	 || fix.type != FB_TYPE_PACKED_PIXELS)
-		return -1;
+	w /= d->cell_w;
+	h /= d->cell_h;
 
-	p->b.bytes_per_pixel = (var.bits_per_pixel+7)>>3;
-	p->b.line_stride = fix.line_length;
-	p->b.row_stride = fix.line_length * d->cell_h;
+	if (w == d->w && h == d->h && p->pixmap && p->slices_y)
+		return 0;
 
-	if (var.xres != p->xres || var.yres != p->yres) {
-		int w = var.xres / d->cell_w;
-		int h = var.yres / d->cell_h;
-		void *buf = uuterm_alloc(SLICE_BUF_SIZE(w, h, (d->cell_w+7)/8, d->cell_h));
-		if (!buf) return -1;
-		if (p->buf_mem) uuterm_free(p->buf_mem);
-		p->buf_mem = buf;
-		p->b.slices = dblbuf_setup_buf(w, h, (d->cell_w+7)/8, d->cell_h, buf);
-		p->xres = var.xres;
-		p->yres = var.yres;
-		d->w = w;
-		d->h = h;
-		p->b.repaint = 1;
-		p->b.curs_x = p->b.curs_y = 0;
-	}
+	slice_buf = uuterm_alloc(sizeof(int) * h);
+	if (!slice_buf) return -1;
+	if (p->slices_y) uuterm_free(p->slices_y);
+	p->slices_y = slice_buf;
+	if (w < d->w) d->w = w;
+	if (h < d->h) d->h = h;
+
+	for (i=0; i<h; i++) p->slices_y[i] = -1;
+
+	pixmap = XCreatePixmap(p->display, p->window,
+		w * d->cell_w, h * d->cell_h,
+		DefaultDepth(p->display, p->screen));
+	if (!pixmap) return -1;
+	if (p->pixmap) XFreePixmap(p->display, p->pixmap);
+	p->pixmap = pixmap;
+
+	d->w = w;
+	d->h = h;
 
 	return 0;
 }
-#endif
 
 int uudisp_open(struct uudisp *d)
 {
 	struct priv *p = (void *)&d->priv;
 	XGCValues values;
 	XVisualInfo vi;
+	XSizeHints size_hints;
+	XClassHint class_hint;
+	XWMHints wm_hints;
+	char *fake_argv[2] = { "uuterm-x11", NULL };
 	char *s;
 	int px_w, px_h;
 	struct ucf *f = d->font;
@@ -80,32 +85,40 @@ int uudisp_open(struct uudisp *d)
 	int npages;
 	XImage *image;
 	int i, j, k;
+	int margin = 2;
 
 	if (!(p->display = XOpenDisplay(NULL)))
 		return -1;
 
-	d->w = 80;
-	d->h = 24;
-	p->slices_y = uuterm_alloc(d->h*sizeof(int));
-	px_w = d->w*d->cell_w;
-	px_h = d->h*d->cell_h;
+	px_w = 80*d->cell_w;
+	px_h = 24*d->cell_h;
 
 	p->fd = ConnectionNumber(p->display);
 	p->screen = DefaultScreen(p->display);
 	p->window = XCreateSimpleWindow(p->display,
 		DefaultRootWindow(p->display),
-		0, 0, px_w, px_h, 1,
+		0, 0, px_w, px_h, margin,
 		BlackPixel(p->display, p->screen),
 		BlackPixel(p->display, p->screen));
-	XSelectInput(p->display, p->window, KeyPressMask|ExposureMask);
+	XSelectInput(p->display, p->window,
+		KeyPressMask|ExposureMask|StructureNotifyMask);
+
+	size_hints.width_inc = d->cell_w;
+	size_hints.height_inc = d->cell_h;
+	size_hints.min_width = d->cell_w*2 + 2*margin;
+	size_hints.min_height = d->cell_h*2 + 2*margin;
+	size_hints.flags = PMinSize|PResizeInc;
+	class_hint.res_name = class_hint.res_class = "UUTerm";
+	XmbSetWMProperties(p->display, p->window, "UUTerm", "UUTerm",
+		fake_argv, 1, &size_hints, NULL, &class_hint);
+
 	XMapWindow(p->display, p->window);
 
 	//XSetLocaleModifiers("@im=none");
 	//p->im = XOpenIM(p->display, 0, 0, 0);
 	//p->ic = XCreateIC(p->im, XNInputStyle, XIMPreeditNothing|XIMStatusNothing);
 
-	p->pixmap = XCreatePixmap(p->display, p->window, px_w, px_h,
-		DefaultDepth(p->display, p->screen));
+	resize_window(d, px_w, px_h);
 
 	p->wingc = XCreateGC(p->display, p->window, 0, &values);
 	p->cugc = XCreateGC(p->display, p->window, 0, &values);
@@ -243,6 +256,9 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 			for (i=0; i<d->h; i++)
 				if ((unsigned)p->slices_y[i]-y1 <= y2-y1)
 					p->slices_y[i] = -1;
+			break;
+		case ConfigureNotify:
+			resize_window(d, ev.xconfigure.width, ev.xconfigure.height);
 			break;
 		case KeyPress:
 #if 0
