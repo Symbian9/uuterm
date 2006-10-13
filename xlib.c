@@ -112,9 +112,9 @@ int uudisp_open(struct uudisp *d)
 
 	XMapWindow(p->display, p->window);
 
-	XSetLocaleModifiers("@im=none");
+	//XSetLocaleModifiers("@im=none");
 	p->im = XOpenIM(p->display, 0, 0, 0);
-	if (p->im) p->ic = XCreateIC(p->im, XNInputStyle, XIMPreeditNothing|XIMStatusNothing);
+	if (p->im) p->ic = XCreateIC(p->im, XNInputStyle, XIMPreeditNothing|XIMStatusNothing, NULL);
 
 	resize_window(d, px_w, px_h);
 
