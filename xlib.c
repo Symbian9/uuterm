@@ -84,7 +84,6 @@ int uudisp_open(struct uudisp *d)
 	int npages;
 	XImage image;
 	int i, j, k;
-	int margin = 2;
 
 	if (!(p->display = XOpenDisplay(NULL)))
 		return -1;
@@ -96,7 +95,7 @@ int uudisp_open(struct uudisp *d)
 	p->screen = DefaultScreen(p->display);
 	p->window = XCreateSimpleWindow(p->display,
 		DefaultRootWindow(p->display),
-		0, 0, px_w, px_h, margin,
+		0, 0, px_w, px_h, 2,
 		BlackPixel(p->display, p->screen),
 		BlackPixel(p->display, p->screen));
 	XSelectInput(p->display, p->window,
@@ -104,8 +103,8 @@ int uudisp_open(struct uudisp *d)
 
 	size_hints.width_inc = d->cell_w;
 	size_hints.height_inc = d->cell_h;
-	size_hints.min_width = d->cell_w*2 + 2*margin;
-	size_hints.min_height = d->cell_h*2 + 2*margin;
+	size_hints.min_width = d->cell_w*2;
+	size_hints.min_height = d->cell_h*2;
 	size_hints.flags = PMinSize|PResizeInc;
 	class_hint.res_name = class_hint.res_class = "UUTerm";
 	XmbSetWMProperties(p->display, p->window, "UUTerm", "UUTerm",
