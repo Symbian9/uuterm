@@ -408,6 +408,7 @@ static void process_char(struct uuterm *t, unsigned c)
 	case 0:
 		y = t->y;
 		x = t->x;
+		if (t->am) x++;
 		if (!x--) {
 			/* nothing to combine at home position */
 			if (!y--) return;
