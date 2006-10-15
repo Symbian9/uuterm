@@ -23,9 +23,8 @@ struct priv
 	Window window;
 	XIM im;
 	XIC ic;
-	GC wingc, cugc, fg, bg, mask_fg, mask_bg;
+	GC wingc, cugc, bggc, fggc, maskgc;
 	Pixmap pixmap;
-	Pixmap mask;
 	Pixmap *glyph_cache;
 	int *slices_y;
 	int curs_x, curs_y;
@@ -126,21 +125,19 @@ int uudisp_open(struct uudisp *d)
 
 	resize_window(d, px_w, px_h);
 
-	p->mask = XCreatePixmap(p->display, DefaultRootWindow(p->display),
-		d->cell_w, d->cell_h, 1);
-
 	p->wingc = XCreateGC(p->display, p->window, 0, &values);
 	p->cugc = XCreateGC(p->display, p->window, 0, &values);
-	p->fg = XCreateGC(p->display, p->pixmap, 0, &values);
-	p->bg = XCreateGC(p->display, p->pixmap, 0, &values);
-	p->mask_fg = XCreateGC(p->display, p->mask, 0, &values);
-	p->mask_bg = XCreateGC(p->display, p->mask, 0, &values);
-	XSetClipMask(p->display, p->fg, p->mask);
+	p->fggc = XCreateGC(p->display, p->pixmap, 0, &values);
+	p->bggc = XCreateGC(p->display, p->pixmap, 0, &values);
+	p->maskgc = XCreateGC(p->display, p->pixmap, 0, &values);
 	XSetFunction(p->display, p->cugc, GXxor);
-	XSetFunction(p->display, p->mask_fg, GXor);
+	XSetFunction(p->display, p->fggc, GXor);
+	XSetFunction(p->display, p->bggc, GXcopy);
+	XSetFunction(p->display, p->maskgc, GXandInverted);
 	XSetForeground(p->display, p->cugc, WhitePixel(p->display, p->screen));
-	XSetForeground(p->display, p->mask_fg, WhitePixel(p->display, p->screen));
-	XSetForeground(p->display, p->mask_bg, BlackPixel(p->display, p->screen));
+	XSetBackground(p->display, p->fggc, BlackPixel(p->display, p->screen));
+	XSetForeground(p->display, p->maskgc, WhitePixel(p->display, p->screen));
+	XSetBackground(p->display, p->maskgc, BlackPixel(p->display, p->screen));
 
 	npages = (nglyphs+1023) / 1024; // allows up to 64 pixel cell height..
 	p->glyph_cache = calloc(sizeof(p->glyph_cache[0]), npages);
@@ -351,28 +348,20 @@ void uudisp_draw_glyph(struct uudisp *d, int idx, int x, const void *glyph)
 	int gp = g >> 10;
 	g &= 1023;
 
-	XCopyArea(p->display, p->glyph_cache[gp], p->mask, p->mask_fg,
-		0, g*d->cell_h, d->cell_w, d->cell_h, 0, 0);
+	XCopyPlane(p->display, p->glyph_cache[gp], p->pixmap, p->maskgc,
+		0, g*d->cell_h, d->cell_w, d->cell_h,
+		x * d->cell_w, idx * d->cell_h, 1);
+	XCopyPlane(p->display, p->glyph_cache[gp], p->pixmap, p->fggc,
+		0, g*d->cell_h, d->cell_w, d->cell_h,
+		x * d->cell_w, idx * d->cell_h, 1);
 }
 
 void uudisp_predraw_cell(struct uudisp *d, int idx, int x, int color)
 {
 	struct priv *p = (void *)&d->priv;
-
-	XSetClipOrigin(p->display, p->fg, x*d->cell_w, idx*d->cell_h);
-	XSetForeground(p->display, p->fg, p->colors[color&15]);
-	XSetForeground(p->display, p->bg, p->colors[color>>4]);
-	XFillRectangle(p->display, p->pixmap, p->bg,
-		x*d->cell_w, idx*d->cell_h, d->cell_w, d->cell_h);
-	XFillRectangle(p->display, p->mask, p->mask_bg,
-		0, 0, d->cell_w, d->cell_h);
-}
-
-void uudisp_finalize_cell(struct uudisp *d, int idx, int x)
-{
-	struct priv *p = (void *)&d->priv;
-	XSetClipMask(p->display, p->fg, p->mask);
-	XFillRectangle(p->display, p->pixmap, p->fg,
+	XSetForeground(p->display, p->fggc, p->colors[color&15]);
+	XSetForeground(p->display, p->bggc, p->colors[color>>4]);
+	XFillRectangle(p->display, p->pixmap, p->bggc,
 		x*d->cell_w, idx*d->cell_h, d->cell_w, d->cell_h);
 }
 
