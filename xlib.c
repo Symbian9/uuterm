@@ -23,13 +23,15 @@ struct priv
 	Window window;
 	XIM im;
 	XIC ic;
-	GC wingc, cugc, bggc, fggc, maskgc;
+	GC wingc, cugc, gc;
 	Pixmap pixmap;
-	Pixmap *glyph_cache;
 	int *slices_y;
 	int curs_x, curs_y;
 	int curs_on;
 	unsigned long colors[16];
+	unsigned char *bits;
+	XImage image;
+	int x1, x2, color;
 };
 
 static int resize_window(struct uudisp *d, int w, int h)
@@ -80,11 +82,10 @@ int uudisp_open(struct uudisp *d)
 	char *s;
 	int px_w, px_h;
 	struct ucf *f = d->font;
-	int nglyphs = f->nglyphs;
-	GC gc;
-	int npages;
-	XImage image;
-	int i, j, k;
+	int i;
+
+	/* safety */
+	if (sizeof(*p) > sizeof(d->priv)) return -1;
 
 	if (!(p->display = XOpenDisplay(NULL)))
 		return -1;
@@ -127,48 +128,22 @@ int uudisp_open(struct uudisp *d)
 
 	p->wingc = XCreateGC(p->display, p->window, 0, &values);
 	p->cugc = XCreateGC(p->display, p->window, 0, &values);
-	p->fggc = XCreateGC(p->display, p->pixmap, 0, &values);
-	p->bggc = XCreateGC(p->display, p->pixmap, 0, &values);
-	p->maskgc = XCreateGC(p->display, p->pixmap, 0, &values);
+	p->gc = XCreateGC(p->display, p->pixmap, 0, &values);
 	XSetFunction(p->display, p->cugc, GXxor);
-	XSetFunction(p->display, p->fggc, GXor);
-	XSetFunction(p->display, p->bggc, GXcopy);
-	XSetFunction(p->display, p->maskgc, GXandInverted);
 	XSetForeground(p->display, p->cugc, WhitePixel(p->display, p->screen));
-	XSetBackground(p->display, p->fggc, BlackPixel(p->display, p->screen));
-	XSetForeground(p->display, p->maskgc, WhitePixel(p->display, p->screen));
-	XSetBackground(p->display, p->maskgc, BlackPixel(p->display, p->screen));
 
-	npages = (nglyphs+1023) / 1024; // allows up to 64 pixel cell height..
-	p->glyph_cache = calloc(sizeof(p->glyph_cache[0]), npages);
-
-	for (i=0; i<npages; i++) {
-		p->glyph_cache[i] = XCreatePixmap(p->display,
-			DefaultRootWindow(p->display),
-			d->cell_w, d->cell_h * 1024, 1);
-
-		gc = XCreateGC(p->display, p->glyph_cache[i], 0, &values);
-		XSetForeground(p->display, gc, WhitePixel(p->display, p->screen));
-		XSetBackground(p->display, gc, BlackPixel(p->display, p->screen));
-
-		memset(&image, 0, sizeof image);
-		image.width = d->cell_w;
-		image.height = d->cell_h * 1024;
-		image.xoffset = (-d->cell_w)&7;
-		image.format = XYBitmap;
-		image.data = (void *)(f->glyphs + i*1024*f->S);
-		image.byte_order = ImageByteOrder(p->display);
-		image.bitmap_bit_order = MSBFirst;
-		image.bitmap_pad = 8;
-		image.depth = 1;
-		image.bytes_per_line = (d->cell_w+7)>>3;
-		XInitImage(&image);
-		XPutImage(p->display, p->glyph_cache[i], gc, &image,
-			0, 0, 0, 0, d->cell_w,
-			d->cell_h*(i+1<npages ? 1024 : (nglyphs&1023)));
-
-		XFreeGC(p->display, gc);
-	}
+	memset(&p->image, 0, sizeof p->image);
+	p->image.width = d->cell_w * 80;
+	p->image.height = d->cell_h;
+	p->image.format = XYBitmap;
+	p->image.data = (void *)(f->glyphs + i*1024*f->S);
+	p->image.byte_order = ImageByteOrder(p->display);
+	p->image.bitmap_bit_order = MSBFirst;
+	p->image.bitmap_pad = 8;
+	p->image.depth = 1;
+	p->image.bytes_per_line = (p->image.width+7)>>3;
+	p->image.data = p->bits = uuterm_alloc(p->image.bytes_per_line * d->cell_h);
+	XInitImage(&p->image);
 
 	for (i=0; i<16; i++) {
 		XColor color;
@@ -337,32 +312,43 @@ void uudisp_close(struct uudisp *d)
 	XCloseDisplay(p->display);
 }
 
-
-
-void uudisp_draw_glyph(struct uudisp *d, int idx, int x, const void *glyph)
+static void commit_cells(struct uudisp *d, int idx)
 {
 	struct priv *p = (void *)&d->priv;
-	struct ucf *f = d->font;
-	const unsigned char *foo = glyph;
-	int g = (foo-f->glyphs)/f->S;
-	int gp = g >> 10;
-	g &= 1023;
-
-	XCopyPlane(p->display, p->glyph_cache[gp], p->pixmap, p->maskgc,
-		0, g*d->cell_h, d->cell_w, d->cell_h,
-		x * d->cell_w, idx * d->cell_h, 1);
-	XCopyPlane(p->display, p->glyph_cache[gp], p->pixmap, p->fggc,
-		0, g*d->cell_h, d->cell_w, d->cell_h,
-		x * d->cell_w, idx * d->cell_h, 1);
+	if (p->x2 < p->x1) return;
+	XPutImage(p->display, p->pixmap, p->gc, &p->image,
+		0, 0, p->x1*d->cell_w, idx*d->cell_h,
+		(p->x2-p->x1+1)*d->cell_w, d->cell_h);
 }
 
 void uudisp_predraw_cell(struct uudisp *d, int idx, int x, int color)
 {
 	struct priv *p = (void *)&d->priv;
-	XSetForeground(p->display, p->fggc, p->colors[color&15]);
-	XSetForeground(p->display, p->bggc, p->colors[color>>4]);
-	XFillRectangle(p->display, p->pixmap, p->bggc,
-		x*d->cell_w, idx*d->cell_h, d->cell_w, d->cell_h);
+	int i;
+	unsigned char *dest;
+
+	if (x != p->x2+1 || x-p->x1 >= 80 || color != p->color) {
+		commit_cells(d, idx);
+		p->x1 = x;
+		XSetForeground(p->display, p->gc, p->colors[color&15]);
+		XSetBackground(p->display, p->gc, p->colors[color>>4]);
+	}
+
+	p->x2 = x;
+	dest = p->bits + x - p->x1;
+	for (i=d->cell_h; i; i--, dest += p->image.bytes_per_line)
+		*dest = 0;
+}
+
+void uudisp_draw_glyph(struct uudisp *d, int idx, int x, const void *glyph)
+{
+	struct priv *p = (void *)&d->priv;
+	int i;
+	const unsigned char *src = (void *)glyph;
+	unsigned char *dest = p->bits + x - p->x1;
+
+	for (i=d->cell_h; i; i--, dest += p->image.bytes_per_line)
+		*dest |= *src++;
 }
 
 static void blit_slice(struct uudisp *d, int idx, int x1, int x2)
@@ -394,7 +380,10 @@ void uudisp_refresh(struct uudisp *d, struct uuterm *t)
 		x2 = t->rows[y]->x2;
 		idx = t->rows[y]->idx;
 		if (x2 >= x1) {
+			p->x1 = 0;
+			p->x2 = -2;
 			uuterm_refresh_row(d, t->rows[y], x1, x2);
+			commit_cells(d, idx);
 			t->rows[y]->x1 = t->w;
 			t->rows[y]->x2 = -1;
 		}
