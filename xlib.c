@@ -75,6 +75,7 @@ int uudisp_open(struct uudisp *d)
 	XSizeHints size_hints;
 	XClassHint class_hint;
 	XWMHints wm_hints;
+	unsigned long fevent;
 	char *fake_argv[2] = { "uuterm-x11", NULL };
 	char *s;
 	int px_w, px_h;
@@ -98,8 +99,6 @@ int uudisp_open(struct uudisp *d)
 		0, 0, px_w, px_h, 2,
 		BlackPixel(p->display, p->screen),
 		BlackPixel(p->display, p->screen));
-	XSelectInput(p->display, p->window,
-		KeyPressMask|ExposureMask|StructureNotifyMask);
 
 	size_hints.width_inc = d->cell_w;
 	size_hints.height_inc = d->cell_h;
@@ -118,6 +117,11 @@ int uudisp_open(struct uudisp *d)
 		p->im = XOpenIM(p->display, 0, 0, 0);
 	}
 	if (p->im) p->ic = XCreateIC(p->im, XNInputStyle, XIMPreeditNothing|XIMStatusNothing, NULL);
+
+	if (p->ic) XGetICValues(p->ic, XNFilterEvents, &fevent, NULL);
+	else fevent = 0;
+	XSelectInput(p->display, p->window,
+		KeyPressMask|ExposureMask|StructureNotifyMask|fevent);
 
 	resize_window(d, px_w, px_h);
 
@@ -247,7 +251,14 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 
 	while (XPending(p->display)) {
 		XNextEvent(p->display, &ev);
+		if (XFilterEvent(&ev, 0)) continue;
 		switch (ev.type) {
+		case FocusIn:
+			if (p->ic) XSetICFocus(p->ic);
+			break;
+		case FocusOut:
+			if (p->ic) XUnsetICFocus(p->ic);
+			break;
 		case Expose:
 			y1 = ev.xexpose.y / d->cell_h;
 			y2 = y1 + ev.xexpose.height / d->cell_h + 1;
