@@ -59,6 +59,7 @@ void uuterm_refresh_row(struct uudisp *d, struct uurow *row, int x1, int x2)
 			const void *glyph = lookup_glyph(d->font, i, chp, ch[(x+3)&3], ch[(x+1)&3], width, part);
 			if (glyph) uudisp_draw_glyph(d, row->idx, x, glyph);
 		}
+		uudisp_finalize_cell(d, row->idx, x);
 	}
 }
 
