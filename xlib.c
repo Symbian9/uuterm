@@ -260,6 +260,7 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 				}
 			} else r = XLookupString((void *)&ev, tmp, sizeof(tmp), &ks, 0);
 			if (r>=sizeof(tmp)) continue;
+			tmp[r] = 0;
 			if ((ev.xkey.state & Mod1Mask) && l) {
 				*s++ = '\033';
 				l--;
