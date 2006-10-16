@@ -136,7 +136,6 @@ int uudisp_open(struct uudisp *d)
 	p->image.width = d->cell_w * 80;
 	p->image.height = d->cell_h;
 	p->image.format = XYBitmap;
-	p->image.data = (void *)(f->glyphs + i*1024*f->S);
 	p->image.byte_order = ImageByteOrder(p->display);
 	p->image.bitmap_bit_order = MSBFirst;
 	p->image.bitmap_pad = 8;
