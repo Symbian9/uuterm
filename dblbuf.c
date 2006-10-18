@@ -91,18 +91,22 @@ static unsigned long expand_color(struct uudisp *d, int color)
 {
 	struct dblbuf *b = (void *)&d->priv;
 	static const unsigned char cmap[8] = {0,4,2,6,1,5,3,7};
+	static const unsigned char defpal[16][3] = {
+		{ 0,0,0 }, { 96,0,0 }, { 0,96,0 }, { 85,85,0 },
+		{ 0,0,144 }, { 96,0,96 }, { 0,96,96 }, { 170,170,170 },
+		{ 85,85,85 }, { 255,85,85 }, { 85,255,85 }, { 255,255,85 },
+		{ 85,85,255 }, { 255,85,255 }, { 85,255,255 }, { 255,255,255 }
+	};
 	if (b->bytes_per_pixel > 1) {
-		int R = color<<1 & 2;
-		int G = color & 2;
-		int B = color>>1 & 2;
-		if (color>>3) {
-			R++; G++; B++;
-		}
-		if (b->bytes_per_pixel == 2)
-			return (B*0xa + (G*0x14<<5) + (R*0xa<<11))
+		int R = defpal[color][0];
+		int G = defpal[color][1];
+		int B = defpal[color][2];
+		if (b->bytes_per_pixel == 2) {
+			R >>= 3; G >>= 2; B >>= 3;
+			return (B | G<<5 | R<<11)
 				* (unsigned long)0x0001000100010001;
-		else if (b->bytes_per_pixel == 4)
-			return (B*0x50 + (G*0x50<<8) + (R*0x50<<16))
+		} else if (b->bytes_per_pixel == 4)
+			return (B | G<<8 | R<<16)
 				* (unsigned long)0x0000000100000001;
 	}
 	color = (color&8) | cmap[color&7];
