@@ -57,7 +57,7 @@ int uutty_open(char **cmd, int w, int h)
 				if (!s) s = "/bin/sh";
 				execl(s, s, (char *)0);
 			}
-			return 1;
+			_Exit(1);
 		}
 	
 		uutty_resize(ptm, w, h);
