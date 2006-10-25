@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
 	int tty, max;
 	int i, l;
 	unsigned char b[256];
-	fd_set fds;
+	fd_set fds, wfds;
 	struct timeval tv;
 	void *buf;
 
@@ -59,11 +59,13 @@ int main(int argc, char *argv[])
 	for (;;) {
 		/* Setup fd_set containing fd's used by display and our tty */
 		FD_ZERO(&fds);
+		FD_ZERO(&wfds);
 		FD_SET(tty, &fds);
 		max = uudisp_fd_set(&d, tty, &fds);
+		if (d.inlen) FD_SET(tty, &wfds);
 		tv.tv_sec = 0;
 		tv.tv_usec = 250000;
-		if (select(max, &fds, NULL, NULL, &tv) <= 0) {
+		if (select(max, &fds, &wfds, NULL, &tv) <= 0) {
 			d.blink++;
 			FD_ZERO(&fds);
 		}
@@ -78,6 +80,15 @@ int main(int argc, char *argv[])
 			}
 		}
 
+		/* Write input from previous event */
+		if (d.inlen) {
+			int l = write(tty, d.intext, d.inlen);
+			if (l < 0) l = 0;
+			d.intext += l;
+			d.inlen -= l;
+			d.blink = 1;
+		}
+
 		/* Look for events from the display */
 		uudisp_next_event(&d, &fds);
 
@@ -89,10 +100,6 @@ int main(int argc, char *argv[])
 				buf = newbuf;
 				uutty_resize(tty, d.w, d.h);
 			}
-		}
-		if (d.inlen) {
-			write(tty, d.intext, d.inlen);
-			d.blink = 1;
 		}
 
 		/* If no more input is pending, refresh display */

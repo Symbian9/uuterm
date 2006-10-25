@@ -154,7 +154,7 @@ int uudisp_fd_set(struct uudisp *d, int tty, void *fds)
 {
 	struct priv *p = (struct priv *)&d->priv;
 	if (p->ms >= 0) FD_SET(p->ms, (fd_set *)fds);
-	FD_SET(p->kb, (fd_set *)fds);
+	if (!d->inlen) FD_SET(p->kb, (fd_set *)fds);
 	return p->kb > tty ? p->kb+1 : tty+1;
 }
 
@@ -165,10 +165,8 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 
 	get_fb_size(d);
 
-	d->inlen = 0;
-	d->intext = d->inbuf;
-
 	if (FD_ISSET(p->kb, (fd_set *)fds)) {
+		d->intext = d->inbuf;
 		d->inlen = read(p->kb, d->inbuf, sizeof d->inbuf);
 		if (d->inlen < 0) d->inlen = 0;
 	}

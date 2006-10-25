@@ -217,14 +217,13 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 	int status;
 	int i, n;
 	int y1, y2;
+	long mask = -1;
 
-	d->inlen = 0;
-	d->intext = d->inbuf;
+	if (d->inlen) mask &= ~KeyPressMask;
 
 	if (!FD_ISSET(p->fd, (fd_set *)fds)) return;
 
-	while (XPending(p->display)) {
-		XNextEvent(p->display, &ev);
+	while (XCheckMaskEvent(p->display, mask, &ev)) {
 		if (XFilterEvent(&ev, 0)) continue;
 		switch (ev.type) {
 		case FocusIn:
@@ -244,6 +243,7 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 			resize_window(d, ev.xconfigure.width, ev.xconfigure.height);
 			break;
 		case KeyPress:
+			d->intext = d->inbuf;
 			if (p->ic) {
 				r = XmbLookupString(p->ic, (void *)&ev, tmp, sizeof(tmp), &ks, &status);
 				switch(status) {
@@ -260,7 +260,7 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 			} else r = XLookupString((void *)&ev, tmp, sizeof(tmp), &ks, 0);
 			if (r>=sizeof(tmp)) continue;
 			tmp[r] = 0;
-			if ((ev.xkey.state & Mod1Mask) && l) {
+			if (ev.xkey.state & Mod1Mask) {
 				*s++ = '\033';
 				l--;
 			}
@@ -270,40 +270,36 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 				memcpy(s, keys[i].s, keys[i].l);
 				s += keys[i].l;
 				l -= keys[i].l;
-				continue;
-			}
-			if ((ev.xkey.state & ControlMask) && ks == XK_minus && l) {
+			} else if ((ev.xkey.state & ControlMask)
+			 && ks == XK_minus && l) {
 				*s++ = '_' & 0x1f;
 				l--;
-				continue;
-			}
-			if ((ev.xkey.state & ControlMask) && (ks == XK_2 || ks == XK_space) && l) {
+			} else if ((ev.xkey.state & ControlMask)
+			 && (ks == XK_2 || ks == XK_space) && l) {
 				*s++ = 0;
 				l--;
+			} else if (!r) {
 				continue;
-			}
-			if (!r) continue;
-
-			if (p->ic) {
+			} else if (p->ic) {
 				if (r > l) continue;
 				memcpy(s, tmp, r);
 				s += r;
 				l -= r;
-				continue;
+			} else {
+				/* Deal with Latin-1 crap.. */
+				for (i=0; i<=r; i++) wtmp[i] = tmp[i];
+				r = wcstombs(mbtmp, wtmp, sizeof mbtmp);
+				if ((int)r > 0 && r <= l) {
+					memcpy(s, mbtmp, r);
+					s += r;
+					l -= r;
+				}
 			}
-
-			/* Deal with Latin-1 crap.. */
-			for (i=0; i<=r; i++) wtmp[i] = tmp[i];
-			r = wcstombs(mbtmp, wtmp, sizeof mbtmp);
-			if ((int)r > 0 && r <= l) {
-				memcpy(s, mbtmp, r);
-				s += r;
-				l -= r;
-			}
+			d->inlen = s - d->inbuf;
+			mask &= ~KeyPressMask;
 			break;
 		}
 	}
-	d->inlen = s - d->inbuf;
 }
 
 void uudisp_close(struct uudisp *d)
