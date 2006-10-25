@@ -64,7 +64,11 @@ Script support:
 
 - Indic scripts are _almost_ supported by the UCF font system alone,
   but need some minor additional support for reordering. This will be
-  implemented in the near future, if all goes well.
+  implemented in the near future, if all goes well. However, some
+  scripts (at least Kannada and Malayalam) need revisions to the
+  wcwidth definitions in order to have any hope of correct display,
+  due to characters with extremely wide glyphs with comparable
+  complexity (in vertical stroke count) to ideographic characters.
 
 - RTL/bidi scripts will not render properly. I personally don't believe
   there is any sane way to render them properly at the terminal level,
