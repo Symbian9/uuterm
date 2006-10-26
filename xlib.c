@@ -230,8 +230,10 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 	Atom type;
 	int fmt;
 
-	if (!d->inlen && p->pastebuf)
+	if (!d->inlen && p->pastebuf) {
 		XFree(p->pastebuf);
+		p->pastebuf = NULL;
+	}
 
 	if (!FD_ISSET(p->fd, (fd_set *)fds)) return;
 
