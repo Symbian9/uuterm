@@ -235,8 +235,6 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 		p->pastebuf = NULL;
 	}
 
-	if (!FD_ISSET(p->fd, (fd_set *)fds)) return;
-
 	while (XCheckIfEvent(p->display, &ev, keyev_pred, (void *)d)) {
 		if (XFilterEvent(&ev, 0)) continue;
 		switch (ev.type) {
