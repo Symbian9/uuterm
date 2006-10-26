@@ -11,6 +11,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
+#include <X11/Xatom.h>
 
 #include "uuterm.h"
 #include "ucf.h"
@@ -32,6 +33,7 @@ struct priv
 	unsigned char *bits;
 	XImage image;
 	int x1, x2, color;
+	char *pastebuf;
 };
 
 static int resize_window(struct uudisp *d, int w, int h)
@@ -122,7 +124,8 @@ int uudisp_open(struct uudisp *d)
 	if (p->ic) XGetICValues(p->ic, XNFilterEvents, &fevent, NULL);
 	else fevent = 0;
 	XSelectInput(p->display, p->window,
-		KeyPressMask|ExposureMask|StructureNotifyMask|fevent);
+		KeyPressMask|ButtonPressMask
+		|ExposureMask|StructureNotifyMask|fevent);
 
 	resize_window(d, px_w, px_h);
 
@@ -204,6 +207,11 @@ struct
 	{ 0, "" }
 };
 
+static Bool keyev_pred(Display *xd, XEvent *ev, XPointer d)
+{
+	return !((struct uudisp *)d)->inlen || ev->type != KeyPress;
+}
+
 void uudisp_next_event(struct uudisp *d, void *fds)
 {
 	struct priv *p = (struct priv *)&d->priv;
@@ -217,13 +225,17 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 	int status;
 	int i, n;
 	int y1, y2;
-	long mask = -1;
+	Atom xa_utf8 = XInternAtom(p->display, "UTF8_STRING", False);
+	Atom xa_sel = XInternAtom(p->display, "SELECTION", False);
+	Atom type;
+	int fmt;
 
-	if (d->inlen) mask &= ~KeyPressMask;
+	if (!d->inlen && p->pastebuf)
+		XFree(p->pastebuf);
 
 	if (!FD_ISSET(p->fd, (fd_set *)fds)) return;
 
-	while (XCheckMaskEvent(p->display, mask, &ev)) {
+	while (XCheckIfEvent(p->display, &ev, keyev_pred, (void *)d)) {
 		if (XFilterEvent(&ev, 0)) continue;
 		switch (ev.type) {
 		case FocusIn:
@@ -241,6 +253,29 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 			break;
 		case ConfigureNotify:
 			resize_window(d, ev.xconfigure.width, ev.xconfigure.height);
+			break;
+		case SelectionNotify:
+			if (ev.xselection.property == None) {
+				if (ev.xselection.target == xa_utf8)
+					XConvertSelection(p->display,
+						XA_PRIMARY, XA_STRING,
+						xa_sel, p->window,
+						ev.xselection.time);
+				break;
+			}
+			if (XGetWindowProperty(p->display, p->window,
+				xa_sel, 0, 65536, 1, xa_utf8, &type,
+				&fmt, (void *)&l, (void *)&r, &s)
+				!= Success || type != xa_utf8) break;
+			d->intext = s;
+			d->inlen = l;
+			break;
+		case ButtonPress:
+			if (ev.xbutton.button == 2 && !d->inlen) {
+				XConvertSelection(p->display, XA_PRIMARY,
+					xa_utf8, xa_sel, p->window,
+					ev.xbutton.time);
+			}
 			break;
 		case KeyPress:
 			d->intext = d->inbuf;
@@ -296,7 +331,6 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 				}
 			}
 			d->inlen = s - d->inbuf;
-			mask &= ~KeyPressMask;
 			break;
 		}
 	}
