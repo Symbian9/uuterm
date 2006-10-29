@@ -1,7 +1,7 @@
 # uuterm, Copyright (C) 2006 Rich Felker; licensed under GNU GPL v2 only
 
 
-SRCS = main.c term.c comb.c decomp.c tty.c alloc.c refresh.c ascii.c ucf.c font_load.c
+SRCS = main.c term.c cell.c decomp.c tty.c alloc.c refresh.c ascii.c ucf.c font_load.c
 
 OBJS_FB = fbcon.o dblbuf.o
 OBJS_X11 = xlib.o

@@ -117,8 +117,8 @@ void uudisp_predraw_cell(struct uudisp *d, int idx, int x, int color)
 {
 	struct dblbuf *b = (void *)&d->priv;
 
-	b->slices[idx].colors[2*x] = expand_color(d, color&15);
-	b->slices[idx].colors[2*x+1] = expand_color(d, color>>4) ^ b->slices[idx].colors[2*x];
+	b->slices[idx].colors[2*x] = expand_color(d, color&255);
+	b->slices[idx].colors[2*x+1] = expand_color(d, color>>8) ^ b->slices[idx].colors[2*x];
 }
 
 void uudisp_draw_glyph(struct uudisp *d, int idx, int x, const void *glyph)

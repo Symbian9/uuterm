@@ -61,7 +61,8 @@ static void reset(struct uuterm *t)
 {
 	/* cheap trick */
 	memset(&t->reset, 0, sizeof *t - offsetof(struct uuterm, reset));
-	t->attr = 7;
+	t->attr = 0;
+	t->color = 7;
 	t->sr_y2 = t->h - 1;
 	erase_display(t, 2);
 }
@@ -198,19 +199,30 @@ static void csi(struct uuterm *t, unsigned c)
 			if (t->param[i] == 39) t->param[i] = 37;
 			if (t->param[i] == 49) t->param[i] = 40;
 			if (!t->param[i]) {
-				t->attr = 7;
+				t->attr = 0;
+				t->color = 7;
 			} else if (t->param[i] < 8) {
 				t->attr |= attr[t->param[i]-1];
 			} else if (t->param[i]-21 < 7) {
 				t->attr &= ~attr[t->param[i]-21];
 			} else if (t->param[i]-30 < 8) {
-				t->attr &= ~UU_ATTR_FG;
-				t->attr |= t->param[i] - 30;
+				t->color &= ~255;
+				t->color |= t->param[i] - 30;
 			} else if (t->param[i]-40 < 8) {
-				t->attr &= ~UU_ATTR_BG;
-				t->attr |= t->param[i] - 40 << 4;
+				t->color &= ~(255<<8);
+				t->color |= t->param[i] - 40 << 8;
 			}
 		}
+		if ((t->color&255) < 16)
+			if (t->attr & UU_ATTR_BOLD)
+				t->color |= 8;
+			else
+				t->color &= ~8;
+		if ((t->color>>8) < 16)
+			if (t->attr & UU_ATTR_BLINK)
+				t->color |= 8<<8;
+			else
+				t->color &= ~(8<<8);
 		break;
 	case 'n':
 		switch (t->param[0]) {
@@ -328,38 +340,6 @@ static void escape(struct uuterm *t, unsigned c)
 	}
 }
 
-static void setchar(struct uucell *cell, unsigned c, unsigned a)
-{
-	int i;
-	if (a & UU_ATTR_REV)
-		cell->a = (a & ~(0xff))
-			| ((a & 0x0f) << 4)
-			| ((a & 0xf0) >> 4);
-	else
-		cell->a = a;
-	for (i=0; i<sizeof(cell->c); i++, c>>=8)
-		cell->c[i] = c;
-}
-
-static void addchar(struct uucell *cell, unsigned c)
-{
-	int i;
-	unsigned b;
-
-	for (i=b=0; i<3; i++) b |= cell->c[i] << 8*i;
-	if (b == 0 || b == ' ' || b == 0xa0) {
-		setchar(cell, c, cell->a);
-		return;
-	}
-	if (!(c = uu_combine_involution(b, c))) return;
-	for (; i<sizeof(cell->c); i++) {
-		if (!cell->c[i]) {
-			cell->c[i] = c;
-			break;
-		}
-	}
-}
-
 static void process_char(struct uuterm *t, unsigned c)
 {
 	int x, y, w;
@@ -415,7 +395,7 @@ static void process_char(struct uuterm *t, unsigned c)
 			x = 0;
 		}
 
-		addchar(&t->rows[y]->cells[x], c);
+		uucell_append(&t->rows[y]->cells[x], c);
 		dirty(t, y, x, 1);
 		break;
 	case 1:
@@ -424,7 +404,8 @@ static void process_char(struct uuterm *t, unsigned c)
 		while (w--) {
 			if (t->am) newline(t); // kills am flag
 			dirty(t, t->y, t->x, 1);
-			setchar(&t->rows[t->y]->cells[t->x++], w?UU_FULLWIDTH:c, t->attr);
+			uucell_set(&t->rows[t->y]->cells[t->x++],
+				w?UU_FULLWIDTH:c, t->attr, t->color);
 			if (t->x == t->w) {
 				t->x--;
 				t->am=1;

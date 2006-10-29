@@ -1,12 +1,12 @@
 /* uuterm, Copyright (C) 2006 Rich Felker; licensed under GNU GPL v2 only */
 
 #include <stddef.h>
-#include <wchar.h> /* for mbstate_t... */
+#include <stdint.h>
+#include <wchar.h>
 
 struct uucell
 {
-	unsigned short a;
-	unsigned char c[8];
+	uint32_t x[3];
 };
 
 struct uurow
@@ -16,15 +16,13 @@ struct uurow
 	struct uucell cells[1];
 };
 
-#define UU_ATTR_DIM     0x0100
-#define UU_ATTR_UL      0x0200
-#define UU_ATTR_REV     0x0400
+/* Cell-preserved attributes must lie in 0xC000FC01, see cell.c */
 
-#define UU_ATTR_BOLD    0x0008
-#define UU_ATTR_FG      0x0007
-
-#define UU_ATTR_BLINK   0x0080
-#define UU_ATTR_BG      0x0070
+#define UU_ATTR_UL      0x00000001
+#define UU_ATTR_BOLD    0x00000002
+#define UU_ATTR_BLINK   0x00000004
+#define UU_ATTR_DIM     0x00000008
+#define UU_ATTR_REV     0x00000010
 
 struct uuterm
 {
@@ -37,6 +35,7 @@ struct uuterm
 	// output state
 	int x, y;
 	int attr;
+	int color;
 	int sr_y1, sr_y2;
 	int ins  :1;
 	int am   :1;
@@ -84,7 +83,12 @@ void uuterm_stuff_byte(struct uuterm *, unsigned char);
 
 void uuterm_refresh_row(struct uudisp *, struct uurow *, int, int);
 
-int uu_combine_involution(unsigned, unsigned);
+void uucell_set(struct uucell *, wchar_t, int, int);
+void uucell_append(struct uucell *, wchar_t);
+int uucell_get_attr(struct uucell *);
+int uucell_get_color(struct uucell *);
+int uucell_get_wcs(struct uucell *, wchar_t *, size_t);
+
 int uu_decompose_char(unsigned, unsigned *, unsigned);
 
 int uudisp_open(struct uudisp *);

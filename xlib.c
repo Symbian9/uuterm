@@ -361,8 +361,8 @@ void uudisp_predraw_cell(struct uudisp *d, int idx, int x, int color)
 		commit_cells(d, idx);
 		p->x1 = x;
 		p->color = color;
-		XSetForeground(p->display, p->gc, p->colors[color&15]);
-		XSetBackground(p->display, p->gc, p->colors[color>>4]);
+		XSetForeground(p->display, p->gc, p->colors[color&255]);
+		XSetBackground(p->display, p->gc, p->colors[color>>8]);
 	}
 
 	p->x2 = x;

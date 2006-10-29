@@ -7,16 +7,17 @@
 
 static void extract_cell(unsigned *ch, size_t max, struct uucell *cell)
 {
-	int i, l;
-	unsigned b;
-	for (b=i=0; i<3; i++) b |= cell->c[i] << 8*i;
-	l = uu_decompose_char(b, ch, max);
-	ch += l; max -= l;
-	for (; i<sizeof(cell->c) && cell->c[i]; i++) {
-		l = uu_decompose_char(uu_combine_involution(b, cell->c[i]), ch, max);
+	int i, j, l;
+	wchar_t ws[8];
+	int attr = uucell_get_attr(cell);
+
+	uucell_get_wcs(cell, ws, 8);
+
+	for (i=j=0; ws[i]; i++) {
+		l = uu_decompose_char(ws[i], ch, max);
 		ch += l; max -= l;
 	}
-	if ((cell->a & UU_ATTR_UL) && max)
+	if ((attr & UU_ATTR_UL) && max)
 		max--, *ch++ = '_'; //0x0332;
 	for (; max; max--) *ch++ = 0;
 	ch[-1] = 0;
@@ -54,7 +55,7 @@ void uuterm_refresh_row(struct uudisp *d, struct uurow *row, int x1, int x2)
 		} else {
 			width = 1; part = 0; chp = ch[x&3];
 		}
-		uudisp_predraw_cell(d, row->idx, x, row->cells[x].a & 0xff);
+		uudisp_predraw_cell(d, row->idx, x, uucell_get_color(&row->cells[x]));
 		for (i=0; i<sizeof(ch[0]) && chp[i]; i++) {
 			const void *glyph = lookup_glyph(d->font, i, chp, ch[(x+3)&3], ch[(x+1)&3], width, part);
 			if (glyph) uudisp_draw_glyph(d, row->idx, x, glyph);
