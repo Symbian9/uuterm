@@ -18,7 +18,7 @@ static void extract_cell(unsigned *ch, size_t max, struct uucell *cell)
 		ch += l; max -= l;
 	}
 	if ((attr & UU_ATTR_UL) && max)
-		max--, *ch++ = '_'; //0x0332;
+		max--, *ch++ = 0x0332;
 	for (; max; max--) *ch++ = 0;
 	ch[-1] = 0;
 }
