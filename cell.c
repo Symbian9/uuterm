@@ -76,15 +76,27 @@ static const unsigned short comb[] = {
 0xFE23,0xFEFF,
 };
 
+#define COMB_CNT (sizeof(comb)/sizeof(comb[0]))
+
 static int comb_enc(wchar_t c)
 {
 	int a, n;
 
 	if (c > 0xffff) return 0;
-	for (a=0, n=(sizeof(comb)/sizeof(comb[0])+1)/2; n>1; n=n+1>>1)
+	if ((unsigned)c - 0x1160 < 0xa0)
+		return COMB_CNT + 1 + c - 0x1160;
+	for (a=0, n=(COMB_CNT+1)/2; n>1; n=n+1>>1)
 		a += n & ((signed)(comb[a+n]-c-1) >> 21);
 	if (comb[a]<c) a++;
 	return comb[a]==c ? a+1 : 0;
+}
+
+static wchar_t comb_dec(int c)
+{
+	if ((unsigned)c > COMB_CNT)
+		return c - COMB_CNT - 1 + 0x1160;
+	else if (c) return comb[c-1];
+	else return 0;
 }
 
 #define BASE_BIT 11
@@ -151,7 +163,7 @@ int uucell_get_wcs(struct uucell *cell, wchar_t *ws, size_t l)
 	*ws++ = cell->x[0] >> BASE_BIT;
 	for (i=0; l; i++,l--) {
 		c = (cell->x[comb_idx[i]]>>comb_bit[i]) & COMB_MASK;
-		if (c) c = comb[c-1];
+		if (c) c = comb_dec(c);
 		if (!(*ws++ = c))
 			l = 1;
 	}
