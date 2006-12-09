@@ -140,19 +140,23 @@ static void csi(struct uuterm *t, unsigned c)
 	case 'a':
 	case 'C':
 		t->x += t->param[0];
+		t->am = 0;
 		break;
 	case 'D':
 		t->x -= t->param[0];
+		t->am = 0;
 		break;
 	case '`':
 	case 'G':
 		t->x = t->param[0]-1;
+		t->am = 0;
 		break;
 	case 'f':
 	case 'H':
 		if (!t->param[1]) t->param[1]++;
 		t->y = t->param[0]-1;
 		t->x = t->param[1]-1;
+		t->am = 0;
 		break;
 	case 'J':
 		erase_display(t, t->param[0]);
@@ -259,6 +263,7 @@ static void csi(struct uuterm *t, unsigned c)
 	case 'u':
 		t->x = t->save_x;
 		t->y = t->save_y;
+		t->am = 0;
 		break;
 	case '[':
 		t->esc = IGNORE1;
@@ -320,6 +325,7 @@ static void escape(struct uuterm *t, unsigned c)
 		t->attr = t->save_attr;
 		t->x = t->save_x;
 		t->y = t->save_y;
+		t->am = 0;
 		break;
 	case '[':
 		t->esc = CSI;
@@ -364,6 +370,7 @@ static void process_char(struct uuterm *t, unsigned c)
 			break;
 		case '\r':
 			t->x = 0;
+			t->am = 0;
 			break;
 		case '\n':
 			if (t->y == t->sr_y2) scroll(t, t->sr_y1, t->sr_y2, 0);
@@ -371,10 +378,15 @@ static void process_char(struct uuterm *t, unsigned c)
 			break;
 		case '\t':
 			t->x = (t->x + 8) & ~7;
-			if (t->x >= t->w) t->x = t->w - 1;
+			t->am = 1;
+			if (t->x >= t->w)
+				t->x = t->w - 1;
+			else
+				t->am = 0;
 			break;
 		case '\b':
 			if (!t->am && t->x) t->x--;
+			t->am = 0;
 			break;
 		case '\a':
 			bell(t);
@@ -383,7 +395,6 @@ static void process_char(struct uuterm *t, unsigned c)
 			process_char(t, 0xfffd);
 			break;
 		}
-		t->am = 0;
 		break;
 	case 0:
 		y = t->y;
