@@ -18,7 +18,8 @@ using Linux.
 
 To start using uuterm, simply run "uuterm-fb" or "uuterm-x11" with the
 TERM environment variable set to "linux", or "uuterm" if you install
-the provided uuterm.ti terminfo file.
+the provided uuterm.ti terminfo file, and the UUTERM_FONT environment
+variable set to a valid pathname to a UCF font file:
 
 A simple 'VGA' fallback font with ASCII and linedrawing characters is
 built into uuterm, but in order to appreciate uuterm you need a real
@@ -29,7 +30,9 @@ samples (and the extremely ugly compiler) may be found at:
     http://brightrain.aerifal.cx/~dalias/ucf/fonts/
 
 See the README file there for information on available fonts and how
-to make new fonts.
+to make new fonts. The "compiled" directory there contains precompiled
+fonts, of which the latest version of "ytty" should be the most
+complete and ready-to-use.
 
 By default uuterm runs the default SHELL when started. If you want it
 to directly run another program, simply put the name of the program on
