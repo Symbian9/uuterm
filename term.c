@@ -25,6 +25,8 @@ static void dirty(struct uuterm *t, int y, int x1, int len)
 {
 	int x2 = x1 + len - 1;
 	struct uurow *r = t->rows[y];
+	/* account for potentially affected ligatures */
+	if (x1) x1--; if (x2<t->w-1) x2++;
 	//r->x1 += (x1 - r->x1) & (x1 - r->x1)>>8*sizeof(int)-1;
 	//r->x2 += (x2 - r->x2) & (r->x2 - x2)>>8*sizeof(int)-1;
 	if (x1 < r->x1) r->x1 = x1;
