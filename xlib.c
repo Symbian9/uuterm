@@ -114,12 +114,16 @@ int uudisp_open(struct uudisp *d)
 
 	XMapWindow(p->display, p->window);
 
+	XSetLocaleModifiers("");
 	p->im = XOpenIM(p->display, 0, 0, 0);
 	if (!p->im) {
 		XSetLocaleModifiers("@im=none");
 		p->im = XOpenIM(p->display, 0, 0, 0);
 	}
-	if (p->im) p->ic = XCreateIC(p->im, XNInputStyle, XIMPreeditNothing|XIMStatusNothing, NULL);
+	if (p->im) p->ic = XCreateIC(p->im,
+		XNInputStyle, XIMPreeditNothing|XIMStatusNothing,
+		XNClientWindow, p->window,
+		NULL);
 
 	if (p->ic) XGetICValues(p->ic, XNFilterEvents, &fevent, NULL);
 	else fevent = 0;
