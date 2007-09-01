@@ -224,7 +224,7 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 	KeySym ks;
 	size_t r, l = sizeof(d->inbuf);
 	unsigned char *s = d->inbuf;
-	char tmp[32], mbtmp[sizeof(tmp)*MB_LEN_MAX];
+	char tmp[64], mbtmp[sizeof(tmp)*MB_LEN_MAX];
 	wchar_t wtmp[sizeof(tmp)];
 	int status;
 	int i, n;
@@ -286,6 +286,8 @@ void uudisp_next_event(struct uudisp *d, void *fds)
 			if (p->ic) {
 				r = XmbLookupString(p->ic, (void *)&ev, tmp, sizeof(tmp), &ks, &status);
 				switch(status) {
+				case XBufferOverflow:
+					break; /* FIXME */
 				case XLookupKeySym:
 					r = 0;
 					break;
