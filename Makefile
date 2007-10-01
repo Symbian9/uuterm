@@ -20,6 +20,8 @@ all: $(ALL)
 
 $(OBJS) $(OBJS_FB) $(OBJS_X11): uuterm.h
 
+decomp.o: decomp.h
+
 uuterm-fb: $(OBJS) $(OBJS_FB)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(OBJS_FB) $(LIBS)
 
