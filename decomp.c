@@ -22,8 +22,7 @@ int uu_decompose_char(unsigned c, unsigned *d, unsigned max)
 	}
 
 	p = c>>8;
-	if (p == 0xfb) page = page_0fb;
-	else if (p <= 0x30) page = pages[p];
+	if (p <= sizeof(pages)/sizeof(pages[0])) page = pages[p];
 	else page = NULL;
 
 	if (page && (page[c>>5 & 7] & 1<<(c&31))) {
