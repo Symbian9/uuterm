@@ -24,15 +24,13 @@ variable set to a valid pathname to a UCF font file:
 A simple 'VGA' fallback font with ASCII and linedrawing characters is
 built into uuterm, but in order to appreciate uuterm you need a real
 font. uuterm uses 'UCF' (U**code/Ucs/Universal/... Charcell Font) font
-files. The code to generate UCF fonts is not yet mature, but some
-samples (and the extremely ugly compiler) may be found at:
+files. The included ucfcomp tool (nowhere near mature) can generate
+such fonts from a text-based source format. The ytty (pronounced yeti)
+font which I developed for uuterm is now included with the uuterm
+source and will be built during the build process. Further information
+on UCF (mostly outdated) may be found at:
 
     http://brightrain.aerifal.cx/~dalias/ucf/fonts/
-
-See the README file there for information on available fonts and how
-to make new fonts. The "compiled" directory there contains precompiled
-fonts, of which the latest version of "ytty" should be the most
-complete and ready-to-use.
 
 By default uuterm runs the default SHELL when started. If you want it
 to directly run another program, simply put the name of the program on
