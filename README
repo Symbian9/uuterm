@@ -56,9 +56,10 @@ thing.
 
 While display in uuterm is already very "advanced" by terminal
 emulator standards, keyboard support is moderately poor. The X11
-version of uuterm does not yet have integration with input methods and
-the Linux-fbcon version relies on the console keymap to convert
-keycodes to characters.
+version of uuterm now supports XIM input methods, but without
+on-the-spot or over-the-spot preedit. The Linux-fbcon version does not
+support any input methods directly (although uim-fep could be used)
+and relies on the console keymap to convert keycodes to characters.
 
 
 
@@ -68,15 +69,17 @@ Script support:
 - Indic scripts are _almost_ supported by the UCF font system alone,
   but need some minor additional support for reordering. This will be
   implemented in the near future, if all goes well. However, some
-  scripts (at least Kannada and Malayalam) need revisions to the
+  scripts (at least Kannada and Malayalam) may need revisions to the
   wcwidth definitions in order to have any hope of correct display,
   due to characters with extremely wide glyphs with comparable
   complexity (in vertical stroke count) to ideographic characters.
 
-- RTL/bidi scripts will not render properly. I personally don't believe
-  there is any sane way to render them properly at the terminal level,
-  but I will eventually implement algorithms that might work
-  reasonably for some users.
+- RTL/bidi scripts will not render properly. I personally don't
+  believe there is any sane way to render them properly at the
+  terminal level, but I will eventually implement algorithms that
+  might work reasonably for some users. For the time being,
+  180°-rotated glyphs will be provided for a minimal level of
+  usability.
 
 - All other (LTR) scripts should be fully supported using the
   "advanced" combining and contextual glyph-selection abilities of the
