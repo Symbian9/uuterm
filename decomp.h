@@ -1222,7 +1222,7 @@ static const uint32_t page_030[] = {
 	0x36db02a5,
 	0x47900000,
 };
-static const uint32_t *pages[] = {
+static const uint32_t *const pages[] = {
 	[0] = page_000,
 	[0x1] = page_001,
 	[0x2] = page_002,
