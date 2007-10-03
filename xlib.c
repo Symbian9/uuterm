@@ -180,7 +180,7 @@ int uudisp_fd_set(struct uudisp *d, int tty, void *fds)
 	return p->fd > tty ? p->fd+1 : tty+1;
 }
 
-struct
+static const struct
 {
 	KeySym ks;
 	char s[7], l;
