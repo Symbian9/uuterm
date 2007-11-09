@@ -13,8 +13,9 @@ fbcon version to other framebuffer devices (wscons, PC hardware, SDL,
 With that said, building is just a matter of running "make". If you
 need special CFLAGS options or a nondefault compiler (CC), put them in
 a file named config.mak and they will automatically be used. Should be
-self-explanatory. You can also disable uuterm-fb here if you're not
-using Linux.
+self-explanatory. uuterm-fb is not built by default since it depends
+on Linux fbcon. Either run "make uuterm-fb" or edit config.mak to have
+it built if you wish to use it.
 
 To start using uuterm, simply run "uuterm-fb" or "uuterm-x11" with the
 TERM environment variable set to "linux", or "uuterm" if you install

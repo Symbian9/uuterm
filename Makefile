@@ -14,7 +14,7 @@ LDFLAGS_X11 = -L/usr/X11R6/lib
 
 YTTY_BASE = ./ytty/
 
-ALL := uuterm-x11 uuterm-fb ucfcomp $(YTTY_BASE)ytty.ucf
+ALL := uuterm-x11 ucfcomp $(YTTY_BASE)ytty.ucf
 CLEAN := $(ALL) $(OBJS) $(OBJS_FB) $(OBJS_X11)
 
 include $(YTTY_BASE)Makefile
